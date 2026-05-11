@@ -299,18 +299,17 @@ const STATIC     = {static_json};
 const WO_TYPES   = {wo_types_json};
 const WO_EN_LABELS = {js(wo['top_types'])};
 
-let _lang = localStorage.getItem('aw-lang') || 'en';
-if (!LANGS.includes(_lang)) _lang = 'en';
-
-function toggleLang() {{
-  const i = LANGS.indexOf(_lang);
-  _lang = LANGS[(i + 1) % LANGS.length];
-  localStorage.setItem('aw-lang', _lang);
-  document.documentElement.lang = _lang;
-  _applyLang();
+// Detect from navigator.language — e.g. "zh-CN" → "zh", "ja-JP" → "ja".
+// Falls back to 'en' if no match.
+function detectLang() {{
+  const codes = (navigator.languages || [navigator.language || 'en'])
+    .map(s => (s || '').toLowerCase().split('-')[0]);
+  for (const c of codes) if (LANGS.includes(c)) return c;
+  return 'en';
 }}
+let _lang = detectLang();
 
-function _applyLang() {{
+function applyLang() {{
   const dict = STATIC[_lang] || {{}};
   // Static labels — look up by EN key
   document.querySelectorAll('[data-i18n]').forEach(el => {{
@@ -324,9 +323,6 @@ function _applyLang() {{
     const v = table[_lang] ?? table.en;
     if (v !== undefined) el.innerHTML = v;
   }});
-  // Button: show NEXT language name as a hint of where the cycle goes
-  const nextLang = LANGS[(LANGS.indexOf(_lang) + 1) % LANGS.length];
-  document.getElementById('langBtn').textContent = LANG_NAMES[nextLang] || nextLang;
   // Workout types chart
   Object.values(Chart.instances).forEach(c => {{
     if (c.canvas && c.canvas.id === 'cWoTypes') {{
@@ -339,11 +335,9 @@ function _applyLang() {{
   }});
 }}
 
-// ── theme ──
-function toggleTheme() {{
-  const light = document.documentElement.classList.toggle('light');
-  localStorage.setItem('aw-theme', light ? 'light' : 'dark');
-  document.getElementById('themeBtn').textContent = light ? '🌙' : '☀️';
+// ── theme: read prefers-color-scheme ──
+function applyTheme(light) {{
+  document.documentElement.classList.toggle('light', light);
   const gc = light ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.04)';
   const tc = '#475569';
   Object.values(Chart.instances).forEach(c => {{
@@ -369,10 +363,11 @@ function toggleTheme() {{
   document.querySelectorAll('[data-i18n]').forEach(el => {{
     el.dataset.i18nOrig = el.innerHTML;
   }});
-  if (localStorage.getItem('aw-theme') === 'light') {{
-    document.documentElement.classList.add('light');
-    document.getElementById('themeBtn').textContent = '🌙';
-  }}
   document.documentElement.lang = _lang;
-  _applyLang();
+  applyLang();
+
+  // Theme: initial + live updates as the user toggles their OS
+  const mq = matchMedia('(prefers-color-scheme: light)');
+  applyTheme(mq.matches);
+  mq.addEventListener('change', e => applyTheme(e.matches));
 }})();"""

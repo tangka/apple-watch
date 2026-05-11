@@ -274,12 +274,8 @@ def build_html(d):
 </style>
 </head>
 <body>
-<div class="controls-bar">
-  <button class="ctrl-btn" id="langBtn" onclick="toggleLang()">中文</button>
-  <button class="ctrl-btn" id="themeBtn" onclick="toggleTheme()">☀️</button>
-</div>
-<!-- i18n.HEADER will be picked up by _applyLang() -->
-{"" if True else ""}
+<!-- Language and theme are detected from system preferences (navigator.language
+     and prefers-color-scheme). No user controls. -->
 
 <!-- ═══════════════════ HERO ═══════════════════ -->
 <div class="hero">

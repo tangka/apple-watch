@@ -1,108 +1,42 @@
-# Apple Health Analyzer
+# /apple-health
 
-Analyze Apple Health export data and generate a comprehensive HTML health report, or answer specific health questions based on the data.
+Explicit slash-command entry point for the **apple-health skill**. The skill's
+authoritative instructions live in `SKILL.md` at the project root — read it
+first, then follow the routing below.
 
-**Usage:**
-- `/apple-health ~/Downloads/导出.zip` — full pipeline: extract → parse → HTML report
-- `/apple-health --report` — regenerate HTML from already-parsed data (no re-parsing)
-- `/apple-health q: <question>` — answer a specific health question from parsed data
+## Routing $ARGUMENTS
 
----
+| Pattern | Mode |
+|---|---|
+| `*.zip` (path to Apple Health export) | full pipeline — parse + report + open |
+| `--report` or empty + `latest_parsed/` exists | report-only — skip parsing |
+| starts with `q: <question>` | Q&A from parsed CSVs |
+| empty + no parsed data | ask the user for the export ZIP path |
 
-## Setup — locate the project directory
+## Locate scripts
 
-The scripts live alongside this skill file. Determine SCRIPT_DIR by running:
+The Python scripts (`health_parser.py`, `report_html.py`, …) sit alongside
+this command file's parent project. Resolve `$SCRIPT_DIR` from the
+project-root marker (presence of `SKILL.md`):
 
 ```bash
-SCRIPT_DIR="$(dirname "$(realpath ~/.claude/commands/apple-health.md)" 2>/dev/null || echo "$HOME/Desktop/tangka-code/apple-watch")"
+SCRIPT_DIR="$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd)"
+[ ! -f "$SCRIPT_DIR/SKILL.md" ] && SCRIPT_DIR="$HOME/.claude/skills/apple-health"
 ```
 
-All outputs go into the project:
-- Extracted raw data → `$SCRIPT_DIR/latest_raw/`
-- Parsed CSVs + JSON → `$SCRIPT_DIR/latest_parsed/`
-- HTML report → `$SCRIPT_DIR/latest_parsed/health_report.html`
+## Commands
 
----
-
-## Behavior
-
-### 1. Detect mode from $ARGUMENTS
-
-- Argument ends with `.zip` → **full pipeline mode**
-- Argument is `--report` or empty with `latest_parsed/` already present → **report-only mode**
-- Argument starts with `q:` → **Q&A mode**
-- No argument and no existing data → ask user to provide the zip path
-
----
-
-### 2. Full pipeline mode
-
-Run these steps in order:
-
-**Step 1 — Parse (60–120 s for a 1–2 GB XML file):**
 ```bash
-python3 "$SCRIPT_DIR/health_parser.py" \
-  --zip "$ZIP_PATH"
-```
-`--out` and `--raw` default to `$SCRIPT_DIR/latest_parsed/` and `$SCRIPT_DIR/latest_raw/` automatically — no need to pass them unless overriding.
-
-Tell the user parsing takes 1–2 minutes and show progress output.
-
-**Step 2 — Generate HTML report:**
-```bash
-python3 "$SCRIPT_DIR/report_html.py" \
-  --data "$SCRIPT_DIR/latest_parsed"
-```
-Output defaults to `$SCRIPT_DIR/latest_parsed/health_report.html`.
-
-**Step 3 — Open the report:**
-```bash
+# Full pipeline (parse takes ~1 min per GB of XML)
+python3 "$SCRIPT_DIR/health_parser.py" --zip "$ZIP_PATH"
+python3 "$SCRIPT_DIR/report_html.py"   --data "$SCRIPT_DIR/latest_parsed"
 open "$SCRIPT_DIR/latest_parsed/health_report.html"
 ```
 
-Then give the user a brief summary of the 5 key metrics (steps, sleep, RHR, HRV, VO₂max) with benchmark context.
+After opening the report, brief the user on the 5 hero metrics (steps,
+sleep, RHR, HRV, VO₂max) with status and benchmark context. Always
+include the "not medical advice" disclaimer.
 
----
-
-### 3. Report-only mode (`--report`)
-
-Skip parsing, run only Steps 2–3 above. Use when `latest_parsed/daily_metrics.csv` already exists.
-
----
-
-### 4. Q&A mode (`q: <question>`)
-
-Read CSVs from `$SCRIPT_DIR/latest_parsed/` to answer the question.
-
-Available files and key columns:
-| File | Key columns |
-|------|------------|
-| `daily_metrics.csv` | date, steps, resting_hr_bpm, hrv_sdnn_ms, vo2_max, sleep_hours, sleep_deep_h, sleep_rem_h, sleep_core_h, spo2, respiratory_rate, exercise_min, active_energy_kcal, distance_km, body_mass_kg |
-| `monthly_trends.csv` | period, steps_avg, sleep_avg, rhr_avg, hrv_avg, vo2_avg, exercise_min_total |
-| `workouts.csv` | type, start, end, duration_min, distance_km, energy_kcal |
-| `sleep.csv` | night_date, in_bed_h, asleep_h, deep_h, rem_h, core_h, awake_h |
-
-**Note:** SpO₂ is stored as a decimal (0.97 = 97%) — multiply by 100 before comparing to benchmarks.
-
-Evidence-based benchmarks to cite:
-- **Steps**: Paluch et al. JAMA Netw Open 2022; AHA (≥7,000 steps → 50–70% lower mortality)
-- **Exercise min**: WHO 2020 / AHA 2018 (≥150 min/wk moderate or ≥75 min/wk vigorous)
-- **Resting HR**: AHA (normal 60–100 bpm; optimal 60–70 bpm)
-- **HRV (SDNN)**: ESC/NASPE 1996; Shaffer & Ginsberg Front Public Health 2017
-- **VO₂max**: Ross et al. Circulation 2016; ACSM fitness categories
-- **Sleep**: AASM/SRS Consensus Watson et al. Sleep 2015 (7–9 h recommended)
-- **Sleep stages**: AASM; Hirshkowitz et al. Sleep Health 2015
-- **SpO₂**: AHA/ATS (≥95% normal; <90% = hypoxemia)
-- **Respiratory rate**: AHA/NICE (12–20 breaths/min normal)
-
-Always append:
-> *Consumer-grade wearable data only — not medical advice. Consult a healthcare provider.*
-
----
-
-### 5. Error handling
-
-- Zip not found → remind user: iPhone → Health app → profile icon → Export All Health Data
-- XML not found after extraction → search recursively for any `.xml` file in `latest_raw/`
-- `daily_metrics.csv` empty → source filter may have excluded everything; suggest `--all-sources` flag
-- `report_html.py` import error → check that `latest_parsed/meta.json` exists (re-run parser if missing)
+For Q&A mode, read `latest_parsed/*.csv` directly. See `SKILL.md` for the
+column schema and benchmark citation list. **SpO₂ is decimal (0.97 = 97%)
+— scale before comparing.**
