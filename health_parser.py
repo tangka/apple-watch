@@ -78,7 +78,9 @@ def extract_zip(zip_path: str, dst: str) -> str:
                         name = raw
             if name.endswith(SKIP_SUFFIX):
                 continue
-            target = os.path.join(dst, name)
+            target = os.path.realpath(os.path.join(dst, name))
+            if not target.startswith(os.path.realpath(dst) + os.sep):
+                continue  # zip slip guard
             if info.is_dir():
                 os.makedirs(target, exist_ok=True)
                 continue

@@ -9,7 +9,7 @@ Evidence-based benchmarks: AHA, WHO, AASM, ACSM, ESC.
 """
 from __future__ import annotations
 
-import argparse, html as _html, json, os, sys, urllib.request
+import argparse, hashlib, html as _html, json, os, sys, urllib.request
 from collections import defaultdict
 from datetime import datetime, date
 
@@ -25,18 +25,26 @@ def i18n_attr(d):
     return _html.escape(json.dumps(d, ensure_ascii=False), quote=True)
 
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
-CHARTJS_URL = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
-CHARTJS_CACHE = os.path.join(SCRIPT_DIR, "vendor", "chart.min.js")
+CHARTJS_URL    = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+CHARTJS_CACHE  = os.path.join(SCRIPT_DIR, "vendor", "chart.min.js")
+CHARTJS_SHA256 = "0e2326c6868072bec1592760c6729043caeea2960a2b46cee6a2192aac6abff0"
 
 def get_chartjs() -> str:
     if os.path.exists(CHARTJS_CACHE):
-        with open(CHARTJS_CACHE, encoding="utf-8") as f:
-            return f.read()
+        with open(CHARTJS_CACHE, "rb") as f:
+            data = f.read()
+        if hashlib.sha256(data).hexdigest() != CHARTJS_SHA256:
+            sys.exit("ERROR: vendor/chart.min.js checksum mismatch — delete it and re-run to re-download")
+        return data.decode("utf-8")
     print(f"downloading Chart.js → {CHARTJS_CACHE}")
     os.makedirs(os.path.dirname(CHARTJS_CACHE), exist_ok=True)
     urllib.request.urlretrieve(CHARTJS_URL, CHARTJS_CACHE)
-    with open(CHARTJS_CACHE, encoding="utf-8") as f:
-        return f.read()
+    with open(CHARTJS_CACHE, "rb") as f:
+        data = f.read()
+    if hashlib.sha256(data).hexdigest() != CHARTJS_SHA256:
+        os.remove(CHARTJS_CACHE)
+        sys.exit("ERROR: downloaded Chart.js checksum mismatch — possible CDN tampering")
+    return data.decode("utf-8")
 
 
 # ─────────────────────────────────────────── CLI ──

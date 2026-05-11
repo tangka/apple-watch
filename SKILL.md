@@ -56,7 +56,39 @@ open "$SCRIPT_DIR/latest_parsed/health_report.html"
 
 Tell the user the parser takes ~1 minute per GB of XML. Stream its progress (it prints record counts every 500k records).
 
-After opening the report, give a brief summary of the 5 hero metrics (steps, sleep duration, resting HR, HRV, VO₂max) with their status badges and benchmark interpretation. Always include the disclaimer that the data is from a consumer-grade wearable, not medical advice.
+After opening the report, compute and display the health score, then give a brief summary of the 5 hero metrics. Use this snippet to get the score:
+
+```python
+import sys, json
+from collections import defaultdict
+from datetime import date
+sys.path.insert(0, SCRIPT_DIR)
+from benchmarks import apply_profile_benchmarks, get_status, compute_health_score, score_grade, SCORE_MAP, SCORE_WEIGHTS
+from report_data import load_csv, flt, recent_avg
+
+data_dir = SCRIPT_DIR + "/latest_parsed"
+daily = load_csv(f"{data_dir}/daily_metrics.csv")
+meta  = json.load(open(f"{data_dir}/meta.json"))
+profile = meta.get("profile", {})
+dob_str = profile.get("date_of_birth"); sex = profile.get("biological_sex","")
+age = None
+if dob_str:
+    d = date.fromisoformat(dob_str); today = date.today()
+    age = today.year - d.year - ((today.month, today.day) < (d.month, d.day))
+if age: apply_profile_benchmarks(age, sex)
+avgs = {k: recent_avg(daily, k, 90) for k in ["steps","resting_hr_bpm","walking_hr_bpm","hrv_sdnn_ms","vo2_max","sleep_hours"]}
+weekly_ex = defaultdict(float)
+for r in sorted(daily, key=lambda x: x["date"], reverse=True)[:90]:
+    v = flt(r.get("exercise_min"))
+    if v:
+        iso = date.fromisoformat(r["date"]).isocalendar()
+        weekly_ex[f"{iso[0]}-{iso[1]:02d}"] += v
+avgs["exercise_min_week"] = round(sum(weekly_ex.values())/len(weekly_ex),0) if weekly_ex else None
+score = compute_health_score(avgs); grade, _, gcat = score_grade(score)
+print(score, grade, gcat)
+```
+
+Show the score prominently at the top of the reply, e.g. **健康评分：82 / 100 · B · Good**，then the 5 hero metrics (steps, sleep duration, resting HR, HRV, VO₂max) with their status badges and benchmark interpretation. Always include the disclaimer that the data is from a consumer-grade wearable, not medical advice.
 
 ### 3. Report-only mode
 
