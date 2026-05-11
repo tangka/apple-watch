@@ -137,4 +137,4 @@ This report visualizes data from a consumer-grade wearable. It cannot diagnose, 
 
 ## License
 
-MIT
+[MIT](LICENSE)
