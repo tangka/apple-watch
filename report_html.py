@@ -9,9 +9,23 @@ Evidence-based benchmarks: AHA, WHO, AASM, ACSM, ESC.
 """
 from __future__ import annotations
 
-import argparse, csv, json, os, sys
+import argparse, csv, json, os, sys, urllib.request
 from collections import defaultdict
 from datetime import datetime, date
+
+SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
+CHARTJS_URL = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+CHARTJS_CACHE = os.path.join(SCRIPT_DIR, "vendor", "chart.min.js")
+
+def get_chartjs() -> str:
+    if os.path.exists(CHARTJS_CACHE):
+        with open(CHARTJS_CACHE, encoding="utf-8") as f:
+            return f.read()
+    print(f"downloading Chart.js → {CHARTJS_CACHE}")
+    os.makedirs(os.path.dirname(CHARTJS_CACHE), exist_ok=True)
+    urllib.request.urlretrieve(CHARTJS_URL, CHARTJS_CACHE)
+    with open(CHARTJS_CACHE, encoding="utf-8") as f:
+        return f.read()
 
 
 # ─────────────────────────────────────────── CLI ──
@@ -388,6 +402,9 @@ def build_html(d):
     def sec(icon, title, accent):
         return f'<div class="sec-head" style="--accent:{accent}"><span class="sec-icon">{icon}</span>{title}</div>'
 
+    # Embed Chart.js inline
+    _chartjs = get_chartjs()
+
     # Embed icon as base64 favicon
     import base64 as _b64
     _icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icon.svg")
@@ -406,9 +423,14 @@ def build_html(d):
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Apple Health · {date_start} – {date_end}</title>
 {"<link rel='icon' href='" + _favicon + "'>" if _favicon else ""}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* System font stack — no external dependencies */
+@font-face {{
+  font-family: 'Space Grotesk';
+  src: local('Space Grotesk'), local('SpaceGrotesk');
+}}
+</style>
+<script>{_chartjs}</script>
 <style>
 :root{{
   --bg:#070d1a;
@@ -424,8 +446,8 @@ def build_html(d):
 }}
 *,*::before,*::after{{box-sizing:border-box;margin:0;padding:0}}
 html{{scroll-behavior:smooth}}
-body{{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);
-  line-height:1.55;font-size:14px;overflow-x:hidden}}
+body{{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.55;font-size:14px;overflow-x:hidden}}
 a{{color:#7dd3fc;text-decoration:none}}
 a:hover{{text-decoration:underline}}
 
@@ -442,9 +464,9 @@ a:hover{{text-decoration:underline}}
   pointer-events:none;
 }}
 .hero-inner{{position:relative;max-width:1060px;margin:0 auto}}
-.hero-eyebrow{{font-family:'Space Grotesk',sans-serif;font-size:.72rem;font-weight:600;
+.hero-eyebrow{{font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:.72rem;font-weight:600;
   letter-spacing:.12em;text-transform:uppercase;color:#7dd3fc;margin-bottom:14px}}
-.hero h1{{font-family:'Space Grotesk',sans-serif;font-size:clamp(2rem,4vw,3rem);
+.hero h1{{font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:clamp(2rem,4vw,3rem);
   font-weight:700;line-height:1.1;
   background:linear-gradient(135deg,#e2e8f0 30%,#7dd3fc 70%,#a78bfa 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
@@ -456,7 +478,7 @@ a:hover{{text-decoration:underline}}
   gap:1px;background:var(--border);border:1px solid var(--border);
   border-radius:var(--radius);overflow:hidden;max-width:700px}}
 .hs-cell{{background:var(--surface2);padding:14px 16px}}
-.hs-val{{font-family:'JetBrains Mono',monospace;font-size:1.35rem;font-weight:600;
+.hs-val{{font-family:'JetBrains Mono','SF Mono','Fira Code','Cascadia Code',monospace;font-size:1.35rem;font-weight:600;
   line-height:1;color:#f1f5f9}}
 .hs-lbl{{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;
   color:var(--muted);margin-top:4px}}
@@ -467,7 +489,7 @@ a:hover{{text-decoration:underline}}
 /* ── SECTION ── */
 .section{{margin-top:56px}}
 .sec-head{{display:flex;align-items:center;gap:10px;
-  font-family:'Space Grotesk',sans-serif;font-size:1.15rem;font-weight:700;
+  font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:1.15rem;font-weight:700;
   color:#f1f5f9;padding-bottom:12px;
   border-bottom:1px solid var(--border);margin-bottom:24px;
   position:relative}}
@@ -482,7 +504,7 @@ a:hover{{text-decoration:underline}}
   padding:14px 20px;border-radius:0 var(--radius) var(--radius) 0;
   margin-bottom:20px;
 }}
-.insight-head{{font-family:'Space Grotesk',sans-serif;font-size:1.5rem;font-weight:700;
+.insight-head{{font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:1.5rem;font-weight:700;
   color:var(--accent);line-height:1.15;margin-bottom:6px}}
 .insight-body{{font-size:.82rem;color:#94a3b8;line-height:1.5}}
 
@@ -503,7 +525,7 @@ a:hover{{text-decoration:underline}}
 .sc-title{{font-size:.68rem;font-weight:600;text-transform:uppercase;
   letter-spacing:.05em;color:var(--muted);margin-bottom:8px}}
 .sc-value{{
-  font-family:'JetBrains Mono',monospace;
+  font-family:'JetBrains Mono','SF Mono','Fira Code','Cascadia Code',monospace;
   font-size:clamp(1.35rem,5cqi,1.9rem);
   font-weight:600;line-height:1;
   white-space:nowrap;overflow:hidden;
@@ -520,7 +542,7 @@ a:hover{{text-decoration:underline}}
 /* ── CHARTS ── */
 .chart-box{{background:var(--surface);border:1px solid var(--border);
   border-radius:var(--radius);padding:18px 16px 12px;margin-bottom:16px}}
-.chart-title{{font-family:'Space Grotesk',sans-serif;font-size:.78rem;
+.chart-title{{font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:.78rem;
   font-weight:600;color:#94a3b8;margin-bottom:12px;text-transform:uppercase;
   letter-spacing:.04em}}
 .grid2{{display:grid;grid-template-columns:1fr 1fr;gap:16px}}
@@ -531,7 +553,7 @@ a:hover{{text-decoration:underline}}
   gap:14px;margin-top:24px}}
 .bm-block{{background:var(--surface);border:1px solid var(--border);
   border-radius:var(--radius);padding:16px}}
-.bm-title{{font-family:'Space Grotesk',sans-serif;font-size:.8rem;font-weight:700;
+.bm-title{{font-family:'Space Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:.8rem;font-weight:700;
   color:#e2e8f0;margin-bottom:10px}}
 .bm-tbl{{width:100%;border-collapse:collapse;font-size:.75rem}}
 .bm-tbl td{{padding:4px 6px;border-bottom:1px solid var(--grid)}}
@@ -725,7 +747,7 @@ a:hover{{text-decoration:underline}}
 // ── Chart.js dark theme defaults ──
 Chart.defaults.color = '#64748b';
 Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
-Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+Chart.defaults.font.family = "Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif";
 Chart.defaults.font.size = 11;
 
 const SCALE = {{

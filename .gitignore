@@ -2,6 +2,9 @@
 latest_raw/
 latest_parsed/
 
+# Vendored JS (downloaded on first run)
+vendor/
+
 # Python
 __pycache__/
 *.py[cod]
