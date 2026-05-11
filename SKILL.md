@@ -66,13 +66,15 @@ Skip the parser and only run report + open. Use when `latest_parsed/daily_metric
 
 Read CSVs from `$SCRIPT_DIR/latest_parsed/` to answer the question.
 
-| File | Key columns |
+| File | Possible columns (subset of) |
 |---|---|
-| `daily_metrics.csv` | date, steps, resting_hr_bpm, hrv_sdnn_ms, vo2_max, sleep_hours, sleep_deep_h, sleep_rem_h, sleep_core_h, spo2, respiratory_rate, exercise_min, active_energy_kcal, distance_km, body_mass_kg |
-| `monthly_trends.csv` | period, steps_avg, sleep_avg, rhr_avg, hrv_avg, vo2_avg, exercise_min_total |
+| `daily_metrics.csv` | date, steps, resting_hr_bpm, walking_hr_bpm, hrv_sdnn_ms, vo2_max, heart_rate_bpm, sleep_hours, sleep_deep_h, sleep_rem_h, sleep_core_h, sleep_awake_h, sleep_in_bed_h, spo2, respiratory_rate, exercise_min, stand_min, active_energy_kcal, basal_energy_kcal, distance_km, flights, env_audio_db, body_mass_kg |
+| `monthly_trends.csv` | period, steps_avg, sleep_avg, rhr_avg, hrv_avg, vo2_avg, exercise_min_total, plus per-metric `_avg`/`_days` counterparts |
 | `workouts.csv` | type, start, end, duration_min, distance_km, energy_kcal |
 | `sleep.csv` | night_date, in_bed_h, asleep_h, deep_h, rem_h, core_h, awake_h |
 | `meta.json` | profile (date_of_birth, biological_sex, blood_type), date_range, total_days, total_workouts |
+
+**Schema note:** `daily_metrics.csv` is built dynamically — a column appears only if the export contained data for that metric type. Always read the header row to discover what's actually present (e.g. someone who never logs body weight on their watch will have no `body_mass_kg` column).
 
 **Important:** SpO₂ is stored as a decimal (0.97 = 97%) — multiply by 100 before comparing to benchmarks. The parser does NOT pre-scale this value.
 
