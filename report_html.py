@@ -55,55 +55,91 @@ def fmt_num(v, decimals=1):
 
 # ─────────────────────────────────────────── Insight generator ──
 
+_ZH_STATUS = {
+    "Highly Active":"非常活跃","Active":"活跃","Somewhat Active":"中等活跃",
+    "Low Active":"低活跃","Sedentary":"久坐",
+    "Meets Guidelines":"达标","Partially Active":"部分达标","Below Guidelines":"未达标",
+    "Athletic":"运动员级","Optimal":"最优","Normal":"正常","Elevated":"偏高","Tachycardia":"心动过速",
+    "Fit":"体能好","Average":"一般","High":"偏高",
+    "Good":"良好","Fair":"一般","Low":"偏低",
+    "Excellent":"优秀","Poor":"较差","Very Poor":"很差",
+    "Recommended":"推荐范围","Borderline":"边缘",
+    "Long Sleep":"睡眠偏多","Insufficient":"睡眠不足",
+    "Below Average":"低于均值",
+}
+
 def make_insight(key, value, avgs=None):
-    """Return (headline, detail, color) for editorial callout."""
+    """Return (head_en, head_zh, detail_en, detail_zh, color) for editorial callout."""
     if value is None: return None
     label, color = get_status(value, key)
     bm = BENCHMARKS.get(key, {})
+    lbl_zh = _ZH_STATUS.get(label, label)
 
     if key == "steps":
-        target = 7000
-        diff = int(value - target)
-        sign = "above" if diff >= 0 else "below"
-        return (f"{fmt_num(value,0)} steps/day",
-                f"That's {abs(diff):,} steps {sign} the 7,000-step threshold associated with 50–70% lower mortality risk (Paluch 2022).",
-                color)
+        diff = int(value - 7000)
+        sign_en = "above" if diff >= 0 else "below"
+        sign_zh = "多" if diff >= 0 else "少"
+        return (
+            f"{fmt_num(value,0)} steps/day",
+            f"{fmt_num(value,0)} 步/天",
+            f"That's {abs(diff):,} steps {sign_en} the 7,000-step threshold associated with 50–70% lower mortality risk (Paluch 2022).",
+            f"比7,000步基准线{sign_zh}{abs(diff):,}步。7,000步/天与全因死亡率降低50–70%相关（Paluch 2022）。",
+            color)
 
     if key == "exercise_min_week":
-        target = 150
-        met = value >= target
-        return (f"{fmt_num(value,0)} min/week",
-                f"{'Meets' if met else 'Below'} the WHO/AHA recommendation of ≥150 min/week of moderate-intensity activity.",
-                color)
+        met = value >= 150
+        return (
+            f"{fmt_num(value,0)} min/week",
+            f"{fmt_num(value,0)} 分钟/周",
+            f"{'Meets' if met else 'Below'} the WHO/AHA recommendation of ≥150 min/week of moderate-intensity activity.",
+            f"{'达到' if met else '低于'}WHO/AHA推荐的每周≥150分钟中等强度运动目标。",
+            color)
 
     if key == "resting_hr_bpm":
-        return (f"{fmt_num(value,0)} bpm resting HR",
-                f"AHA normal range: 60–100 bpm. Your value is in the '{label}' zone.",
-                color)
+        return (
+            f"{fmt_num(value,0)} bpm resting HR",
+            f"静息心率 {fmt_num(value,0)} bpm",
+            f"AHA normal range: 60–100 bpm. Your value is in the '{label}' zone.",
+            f"AHA正常范围：60–100 bpm。当前评级：{lbl_zh}。",
+            color)
 
     if key == "hrv_sdnn_ms":
-        return (f"{fmt_num(value,0)} ms SDNN",
-                f"HRV reflects autonomic nervous system balance. Higher = better. Trend over months is more informative than any single value.",
-                color)
+        return (
+            f"{fmt_num(value,0)} ms SDNN",
+            f"HRV（SDNN）{fmt_num(value,0)} 毫秒",
+            "HRV reflects autonomic nervous system balance. Higher = better. Trend over months is more informative than any single value.",
+            "HRV反映自主神经系统平衡状态，数值越高越好。月度趋势比单次数值更有参考价值。",
+            color)
 
     if key == "vo2_max":
-        return (f"{fmt_num(value,1)} mL/kg/min VO₂max",
-                f"AHA/ACSM fitness category: '{label}'. True improvement requires sustained moderate-to-vigorous aerobic training.",
-                color)
+        return (
+            f"{fmt_num(value,1)} mL/kg/min VO₂max",
+            f"最大摄氧量 {fmt_num(value,1)} mL/kg/min",
+            f"AHA/ACSM fitness category: '{label}'. True improvement requires sustained moderate-to-vigorous aerobic training.",
+            f"AHA/ACSM心肺适能评级：{lbl_zh}。持续提升需要规律的中高强度有氧训练。",
+            color)
 
     if key == "sleep_hours":
-        target_lo, target_hi = 7, 9
-        if value < target_lo:
-            return (f"{fmt_num(value,1)} hrs/night",
-                    f"AASM recommends 7–9 hrs for adults. You're averaging {target_lo - value:.1f} hrs short of the minimum.",
-                    color)
-        return (f"{fmt_num(value,1)} hrs/night",
-                f"Within the AASM-recommended 7–9 hr window. Consistent sleep timing matters as much as duration.",
+        if value < 7:
+            return (
+                f"{fmt_num(value,1)} hrs/night",
+                f"{fmt_num(value,1)} 小时/晚",
+                f"AASM recommends 7–9 hrs for adults. You're averaging {7 - value:.1f} hrs short of the minimum.",
+                f"AASM推荐成人7–9小时睡眠，当前平均比下限少{7 - value:.1f}小时。",
                 color)
-
-    return (f"{fmt_num(value,1)} {bm.get('unit','')}",
-            f"Status: {label} ({bm.get('source','')})",
+        return (
+            f"{fmt_num(value,1)} hrs/night",
+            f"{fmt_num(value,1)} 小时/晚",
+            "Within the AASM-recommended 7–9 hr window. Consistent sleep timing matters as much as duration.",
+            "处于AASM推荐的7–9小时范围内。规律的作息时间与睡眠时长同样重要。",
             color)
+
+    return (
+        f"{fmt_num(value,1)} {bm.get('unit','')}",
+        f"{fmt_num(value,1)} {bm.get('unit','')}",
+        f"Status: {label} ({bm.get('source','')})",
+        f"评级：{lbl_zh}（{bm.get('source','')}）",
+        color)
 
 
 # ─────────────────────────────────────────── HTML builder ──
@@ -181,10 +217,10 @@ def build_html(d):
     def insight_html(key, value):
         r = make_insight(key, value, avgs)
         if not r: return ""
-        head, detail, color = r
+        head_en, head_zh, detail_en, detail_zh, color = r
         return f"""<div class="insight" style="--accent:{color}">
-  <div class="insight-head">{head}</div>
-  <div class="insight-body">{detail}</div>
+  <div class="insight-head"><span class="i18n-en">{head_en}</span><span class="i18n-zh">{head_zh}</span></div>
+  <div class="insight-body"><span class="i18n-en">{detail_en}</span><span class="i18n-zh">{detail_zh}</span></div>
 </div>"""
 
     # Stat card
@@ -198,13 +234,17 @@ def build_html(d):
         status, _  = get_status(value, key)
         src    = bm.get("source","")
         url    = bm.get("url","#")
-        note   = bm.get("note","")[:100]+"…" if len(bm.get("note",""))>100 else bm.get("note","")
+        def _trunc(s, n=100): return s[:n]+"…" if len(s)>n else s
+        note_en = _trunc(bm.get("note",""))
+        note_zh = _trunc(bm.get("note_zh",""))
+        note_html = (f'<span class="i18n-en">{note_en}</span><span class="i18n-zh">{note_zh}</span>'
+                     if note_zh else note_en)
         return f"""<div class="stat-card" style="--accent:{accent}">
   <div class="sc-title" data-i18n="{title}">{title}</div>
   <div class="sc-value" style="color:{accent}">{val_str}</div>
-  <div class="sc-unit">{unit}</div>
+  <div class="sc-unit" data-i18n="{unit}">{unit}</div>
   <div class="sc-badge" style="color:{color};border-color:{color}44;background:{color}11" data-i18n="{status}">{status}</div>
-  <div class="sc-note">{note}</div>
+  <div class="sc-note">{note_html}</div>
   <div class="sc-src"><a href="{url}" target="_blank">{src[:52]}</a></div>
 </div>"""
 
@@ -213,20 +253,24 @@ def build_html(d):
         bm = BENCHMARKS.get(key,{})
         rows = "".join(
             f'<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{c};margin-right:6px;vertical-align:middle"></span><span data-i18n="{lbl}">{lbl}</span></td>'
-            f'<td style="color:#94a3b8">{lo}{"–"+str(hi) if hi else "+"} {bm.get("unit","")}</td></tr>'
+            f'<td style="color:#94a3b8">{lo}{"–"+str(hi) if hi else "+"} <span data-i18n="{bm.get("unit","")}">{bm.get("unit","")}</span></td></tr>'
             for lo,hi,lbl,c in bm.get("levels",[])
         )
+        note_en = bm.get("note","")
+        note_zh = bm.get("note_zh","")
+        note_html = (f'<span class="i18n-en">{note_en}</span><span class="i18n-zh">{note_zh}</span>'
+                     if note_zh else note_en)
         return f"""<div class="bm-block">
   <div class="bm-title" data-i18n="{bm.get('label',key)}">{bm.get("label",key)}</div>
   <table class="bm-tbl"><tbody>{rows}</tbody></table>
-  <p class="bm-note">{bm.get("note","")}</p>
+  <p class="bm-note">{note_html}</p>
   <p class="bm-src">📎 <a href="{bm.get('url','#')}" target="_blank">{bm.get('source','')}</a></p>
 </div>"""
 
     # Chart wrapper
     def chart(cid, title, height=130):
         return f"""<div class="chart-box">
-  <div class="chart-title">{title}</div>
+  <div class="chart-title" data-i18n="{title}">{title}</div>
   <canvas id="{cid}" height="{height}"></canvas>
 </div>"""
 
@@ -434,6 +478,10 @@ html.light .chart-title{{color:#374151}}
 html.light .bm-tbl td{{color:#374151 !important}}
 html.light .ctrl-btn{{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.15)}}
 html.light .ctrl-btn:hover{{background:rgba(0,0,0,.12)}}
+/* i18n bilingual spans */
+.i18n-zh{{display:none}}
+html.zh .i18n-en{{display:none}}
+html.zh .i18n-zh{{display:inline}}
 /* Controls bar */
 .controls-bar{{position:fixed;top:16px;right:16px;z-index:100;display:flex;gap:8px}}
 .ctrl-btn{{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
@@ -465,12 +513,12 @@ html.light .ctrl-btn:hover{{background:rgba(0,0,0,.12)}}
     </div>
     <div class="hero-layout">
       <div class="hero-text">
-        <h1>Your Health Data,<br>By the Numbers</h1>
+        <h1 data-i18n="hero.title">Your Health Data,<br>By the Numbers</h1>
         <div class="hero-sub">
-          {date_start} – {date_end} &nbsp;·&nbsp; {total_days:,} days &nbsp;·&nbsp;
-          {wo['total']} workouts &nbsp;·&nbsp;
-          {"Male" if (sex or "").lower() == "male" else "Female" if (sex or "").lower() == "female" else ""}{(", age " + str(age)) if age else ""} &nbsp;·&nbsp;
-          Generated {generated}
+          {date_start} – {date_end} &nbsp;·&nbsp; {total_days:,} <span data-i18n="days">days</span> &nbsp;·&nbsp;
+          {wo['total']} <span data-i18n="workouts">workouts</span> &nbsp;·&nbsp;
+          {"<span data-i18n='Male'>Male</span>" if (sex or "").lower() == "male" else "<span data-i18n='Female'>Female</span>" if (sex or "").lower() == "female" else ""}{(", <span data-i18n='age'>age</span> " + str(age)) if age else ""} &nbsp;·&nbsp;
+          <span data-i18n="Generated">Generated</span> {generated}
         </div>
         <div class="hero-strip">
           <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['steps'],0)}</div><div class="hs-lbl" data-i18n="steps/day">steps/day</div></div>
@@ -492,8 +540,8 @@ html.light .ctrl-btn:hover{{background:rgba(0,0,0,.12)}}
           <span style="font-size:.85rem;color:{grade_color};opacity:.8" data-i18n="{grade_cat}">{grade_cat}</span>
         </div>
         <div style="font-size:.62rem;color:#475569;text-align:center;line-height:1.55">
-          Weighted composite · 6 metrics · 90&#8209;day avg<br>
-          Steps 20% · Sleep 20% · RHR/HRV/VO₂/Ex 15% each
+          <span data-i18n="gauge.desc1">Weighted composite · 6 metrics · 90&#8209;day avg</span><br>
+          <span data-i18n="gauge.desc2">Steps 20% · Sleep 20% · RHR/HRV/VO₂/Ex 15% each</span>
         </div>
       </div>
     </div>
@@ -639,7 +687,7 @@ html.light .ctrl-btn:hover{{background:rgba(0,0,0,.12)}}
 
 <!-- DISCLAIMER -->
 <div class="disclaimer">
-  ⚠️ <strong>For wellness awareness only.</strong> This report is generated from consumer-grade wearable data and does not constitute medical advice. It cannot diagnose, treat, or prevent any medical condition. All benchmarks are population-level guidelines — individual targets should be set with a healthcare provider. Apple Watch metrics (VO₂ max, SpO₂, sleep stages) are estimates with lower accuracy than clinical instruments.
+  ⚠️ <span class="i18n-en"><strong>For wellness awareness only.</strong> This report is generated from consumer-grade wearable data and does not constitute medical advice. It cannot diagnose, treat, or prevent any medical condition. All benchmarks are population-level guidelines — individual targets should be set with a healthcare provider. Apple Watch metrics (VO₂ max, SpO₂, sleep stages) are estimates with lower accuracy than clinical instruments.</span><span class="i18n-zh"><strong>仅供健康参考。</strong>本报告基于消费级可穿戴设备数据生成，不构成医疗建议，不能用于诊断、治疗或预防任何疾病。所有基准均为人群级指导标准——个人目标应由医疗专业人员制定。Apple Watch 指标（最大摄氧量、血氧、睡眠阶段）为估算值，精度低于临床仪器。</span>
 </div>
 
 </div><!-- /wrap -->
@@ -938,19 +986,105 @@ const ZH = {{
   "steps/day":"步/天","sleep hrs":"睡眠时长","resting HR":"静息心率",
   "HRV ms":"心率变异","VO₂max":"最大摄氧量","min/wk":"分钟/周",
   "sessions":"次","hours":"小时","km":"公里",
+  "bpm":"bpm","ms":"毫秒","mL/kg/min":"mL/kg/min",
+  "hrs/night":"小时/晚","hrs":"小时","%":"%","br/min":"次/分",
+  "hero.title":"你的健康数据，<br>数字说话",
+  "days":"天","workouts":"次锻炼","Male":"男","Female":"女",
+  "Generated":"生成于","age":"年龄",
+  "gauge.desc1":"加权综合 · 6项指标 · 90天均值",
+  "gauge.desc2":"步数20% · 睡眠20% · 静心率/HRV/摄氧量/运动各15%",
+  "Monthly Average Daily Steps":"月均日步数",
+  "Exercise Minutes / Week (monthly avg)":"每周运动时长（月均）",
+  "Average Daily Distance (km)":"日均距离（公里）",
+  "Resting Heart Rate (bpm)":"静息心率（bpm）",
+  "HRV — SDNN (ms)":"心率变异性 — SDNN（毫秒）",
+  "Walking Heart Rate (bpm)":"步行心率（bpm）",
+  "VO₂ Max (mL/kg/min) — Apple Watch estimate · gaps = no outdoor walk/run recorded":"最大摄氧量（毫升/千克/分钟）— Apple Watch 估算",
+  "Monthly Average Sleep Duration (hrs/night)":"月均睡眠时长（小时/晚）",
+  "Sleep Stages by Month — Stacked (hrs/night)":"月度睡眠阶段堆叠（小时/晚）",
+  "Sleep Stages — 90-Day Average (hrs/night)":"睡眠阶段 — 90天均值（小时/晚）",
+  "Blood Oxygen SpO₂ (%)":"血氧饱和度 SpO₂（%）",
+  "Respiratory Rate (breaths/min, measured during sleep)":"呼吸频率（次/分钟，睡眠中测量）",
+  "Monthly Average Body Mass (kg)":"月均体重（公斤）",
+  "Workout Type Distribution":"锻炼类型分布",
+  "Workouts per Month":"每月锻炼次数",
 }};
+
+const WO_TYPE_ZH = {{
+  // 球类运动
+  "AmericanFootball":"美式橄榄球","AustralianFootball":"澳式橄榄球",
+  "Badminton":"羽毛球","Baseball":"棒球","Basketball":"篮球",
+  "Bowling":"保龄球","Cricket":"板球","Curling":"冰壶",
+  "Handball":"手球","Hockey":"曲棍球","Lacrosse":"长曲棍球",
+  "Pickleball":"匹克球","Rugby":"橄榄球","Soccer":"足球",
+  "Softball":"垒球","Squash":"壁球","TableTennis":"乒乓球",
+  "Tennis":"网球","Volleyball":"排球",
+  // 格斗 / 武术
+  "Boxing":"拳击","Fencing":"击剑","MartialArts":"武术",
+  "Wrestling":"摔跤","Kickboxing":"踢拳",
+  // 跑步 / 步行 / 骑行
+  "Running":"跑步","Walking":"步行","Cycling":"骑行",
+  "HandCycling":"手摇自行车",
+  "WheelchairWalkPace":"轮椅慢行","WheelchairRunPace":"轮椅快行",
+  // 有氧 / 力量
+  "CrossTraining":"综合训练","MixedCardio":"混合有氧",
+  "HighIntensityIntervalTraining":"HIIT","JumpRope":"跳绳",
+  "StepTraining":"踏步训练","Stairs":"爬楼梯",
+  "StairClimbing":"登楼梯机","Elliptical":"椭圆机",
+  "Rowing":"划船机","FunctionalStrengthTraining":"功能性力量训练",
+  "TraditionalStrengthTraining":"传统力量训练",
+  "CoreTraining":"核心训练","Flexibility":"柔韧性训练",
+  // 身心 / 舞蹈
+  "Yoga":"瑜伽","Pilates":"普拉提","Barre":"芭蕾把杆",
+  "TaiChi":"太极拳","MindAndBody":"身心冥想",
+  "Dance":"舞蹈","CardioDance":"有氧舞蹈","SocialDance":"社交舞",
+  // 户外 / 登山
+  "Hiking":"登山/徒步","Climbing":"攀岩",
+  "CrossCountrySkiing":"越野滑雪","DownhillSkiing":"高山滑雪",
+  "Snowboarding":"单板滑雪","SnowSports":"雪上运动",
+  // 水上
+  "Swimming":"游泳（室内/室外）","SwimmingOpenWater":"开放水域游泳",
+  "WaterFitness":"水中健身","WaterPolo":"水球",
+  "WaterSports":"水上运动","SurfingSports":"冲浪","Sailing":"帆船",
+  "PaddleSports":"桨板/皮划艇","UnderwaterDiving":"潜水",
+  // 冰上
+  "SkatingSports":"冰/滑轮运动",
+  // 其他竞技
+  "Archery":"射箭","Golf":"高尔夫","Gymnastics":"体操",
+  "Racquetball":"回力球","TrackAndField":"田径",
+  "EquestrianSports":"马术","DiscSports":"飞盘运动",
+  "RacketSports":"拍类运动",
+  // 日常 / 特殊
+  "Fishing":"钓鱼","Hunting":"狩猎","Play":"休闲游玩",
+  "PreparationAndRecovery":"准备与恢复","Cooldown":"整理放松",
+  "FitnessGaming":"健身游戏","Transition":"过渡（铁三）",
+  "MixedMetabolicCardioTraining":"混合代谢有氧",
+  "Other":"其他","Unknown":"未知",
+}};
+const WO_EN_LABELS = {js(wo['top_types'])};
+
 let _lang = localStorage.getItem('aw-lang') || 'en';
 function toggleLang() {{
   _lang = _lang === 'en' ? 'zh' : 'en';
   localStorage.setItem('aw-lang', _lang);
+  document.documentElement.classList.toggle('zh', _lang === 'zh');
   _applyLang();
 }}
 function _applyLang() {{
   const dict = _lang === 'zh' ? ZH : {{}};
   document.querySelectorAll('[data-i18n]').forEach(el => {{
-    el.textContent = dict[el.dataset.i18n] ?? el.dataset.i18n;
+    const v = dict[el.dataset.i18n];
+    el.innerHTML = v !== undefined ? v : el.dataset.i18nOrig;
   }});
   document.getElementById('langBtn').textContent = _lang === 'en' ? '中文' : 'EN';
+  Object.values(Chart.instances).forEach(c => {{
+    if (c.canvas && c.canvas.id === 'cWoTypes') {{
+      c.data.labels = _lang === 'zh'
+        ? WO_EN_LABELS.map(l => WO_TYPE_ZH[l] || l)
+        : [...WO_EN_LABELS];
+      c.update('none');
+    }}
+  }});
 }}
 
 // ── theme ──
@@ -979,6 +1113,12 @@ function toggleTheme() {{
 
 // ── init ──
 (function() {{
+  document.querySelectorAll('[data-i18n]').forEach(el => {{
+    el.dataset.i18nOrig = el.innerHTML;
+  }});
+  if (localStorage.getItem('aw-lang') === 'zh') {{
+    document.documentElement.classList.add('zh');
+  }}
   if (localStorage.getItem('aw-theme') === 'light') {{
     document.documentElement.classList.add('light');
     document.getElementById('themeBtn').textContent = '🌙';
