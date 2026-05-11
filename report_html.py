@@ -411,15 +411,27 @@ a:hover{{text-decoration:underline}}
   font-size:.78rem;color:#a16207;line-height:1.6}}
 
 html.light{{
-  --bg:#f1f5f9; --bg2:#e2e8f0;
-  --surface:rgba(0,0,0,.04); --surface2:rgba(0,0,0,.07);
-  --border:rgba(0,0,0,.10); --text:#0f172a;
-  --muted:#475569; --dim:#94a3b8; --grid:rgba(0,0,0,.06);
+  --bg:#f8fafc; --bg2:#f1f5f9;
+  --surface:rgba(0,0,0,.04); --surface2:rgba(0,0,0,.08);
+  --border:rgba(0,0,0,.12); --text:#0f172a;
+  --muted:#374151; --dim:#64748b; --grid:rgba(0,0,0,.07);
 }}
 html.light .hero{{
   background:linear-gradient(160deg,#e0f2fe 0%,#e0e7ff 40%,#ede9fe 100%);
   border-bottom-color:rgba(0,0,0,.1);
 }}
+html.light a{{color:#1d4ed8}}
+html.light .hero-eyebrow{{color:#3b82f6}}
+html.light h1{{
+  background:linear-gradient(135deg,#0f172a 30%,#1d4ed8 70%,#7c3aed 100%);
+  -webkit-background-clip:text;background-clip:text;
+}}
+html.light .hs-val{{color:#0f172a}}
+html.light .sec-head{{color:#0f172a}}
+html.light .bm-title{{color:#0f172a}}
+html.light .insight-body{{color:#475569}}
+html.light .chart-title{{color:#374151}}
+html.light .bm-tbl td{{color:#374151 !important}}
 html.light .ctrl-btn{{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.15)}}
 html.light .ctrl-btn:hover{{background:rgba(0,0,0,.12)}}
 /* Controls bar */
