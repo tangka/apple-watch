@@ -200,10 +200,10 @@ def build_html(d):
         url    = bm.get("url","#")
         note   = bm.get("note","")[:100]+"…" if len(bm.get("note",""))>100 else bm.get("note","")
         return f"""<div class="stat-card" style="--accent:{accent}">
-  <div class="sc-title">{title}</div>
+  <div class="sc-title" data-i18n="{title}">{title}</div>
   <div class="sc-value" style="color:{accent}">{val_str}</div>
   <div class="sc-unit">{unit}</div>
-  <div class="sc-badge" style="color:{color};border-color:{color}44;background:{color}11">{status}</div>
+  <div class="sc-badge" style="color:{color};border-color:{color}44;background:{color}11" data-i18n="{status}">{status}</div>
   <div class="sc-note">{note}</div>
   <div class="sc-src"><a href="{url}" target="_blank">{src[:52]}</a></div>
 </div>"""
@@ -212,12 +212,12 @@ def build_html(d):
     def bm_block(key):
         bm = BENCHMARKS.get(key,{})
         rows = "".join(
-            f'<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{c};margin-right:6px;vertical-align:middle"></span>{lbl}</td>'
+            f'<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:{c};margin-right:6px;vertical-align:middle"></span><span data-i18n="{lbl}">{lbl}</span></td>'
             f'<td style="color:#94a3b8">{lo}{"–"+str(hi) if hi else "+"} {bm.get("unit","")}</td></tr>'
             for lo,hi,lbl,c in bm.get("levels",[])
         )
         return f"""<div class="bm-block">
-  <div class="bm-title">{bm.get("label",key)}</div>
+  <div class="bm-title" data-i18n="{bm.get('label',key)}">{bm.get("label",key)}</div>
   <table class="bm-tbl"><tbody>{rows}</tbody></table>
   <p class="bm-note">{bm.get("note","")}</p>
   <p class="bm-src">📎 <a href="{bm.get('url','#')}" target="_blank">{bm.get('source','')}</a></p>
@@ -232,7 +232,7 @@ def build_html(d):
 
     # Section header
     def sec(icon, title, accent):
-        return f'<div class="sec-head" style="--accent:{accent}"><span class="sec-icon">{icon}</span>{title}</div>'
+        return f'<div class="sec-head" style="--accent:{accent}"><span class="sec-icon">{icon}</span><span data-i18n="{title}">{title}</span></div>'
 
     # Embed Chart.js inline
     _chartjs = get_chartjs()
@@ -410,6 +410,26 @@ a:hover{{text-decoration:underline}}
   border-radius:var(--radius);padding:16px 20px;margin-top:48px;
   font-size:.78rem;color:#a16207;line-height:1.6}}
 
+html.light{{
+  --bg:#f1f5f9; --bg2:#e2e8f0;
+  --surface:rgba(0,0,0,.04); --surface2:rgba(0,0,0,.07);
+  --border:rgba(0,0,0,.10); --text:#0f172a;
+  --muted:#475569; --dim:#94a3b8; --grid:rgba(0,0,0,.06);
+}}
+html.light .hero{{
+  background:linear-gradient(160deg,#e0f2fe 0%,#e0e7ff 40%,#ede9fe 100%);
+  border-bottom-color:rgba(0,0,0,.1);
+}}
+html.light .ctrl-btn{{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.15)}}
+html.light .ctrl-btn:hover{{background:rgba(0,0,0,.12)}}
+/* Controls bar */
+.controls-bar{{position:fixed;top:16px;right:16px;z-index:100;display:flex;gap:8px}}
+.ctrl-btn{{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  border-radius:99px;padding:6px 14px;color:var(--text);font-size:.72rem;
+  font-weight:600;cursor:pointer;backdrop-filter:blur(8px);
+  transition:background .15s;font-family:inherit}}
+.ctrl-btn:hover{{background:rgba(255,255,255,.18)}}
+
 @media(max-width:660px){{
   .grid2,.grid3{{grid-template-columns:1fr}}
   .hero{{padding:36px 20px 32px}}
@@ -419,6 +439,10 @@ a:hover{{text-decoration:underline}}
 </style>
 </head>
 <body>
+<div class="controls-bar">
+  <button class="ctrl-btn" id="langBtn" onclick="toggleLang()">中文</button>
+  <button class="ctrl-btn" id="themeBtn" onclick="toggleTheme()">☀️</button>
+</div>
 
 <!-- ═══════════════════ HERO ═══════════════════ -->
 <div class="hero">
@@ -437,23 +461,23 @@ a:hover{{text-decoration:underline}}
           Generated {generated}
         </div>
         <div class="hero-strip">
-          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['steps'],0)}</div><div class="hs-lbl">steps/day</div></div>
-          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['sleep_hours'],1)}</div><div class="hs-lbl">sleep hrs</div></div>
-          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['resting_hr_bpm'],0)}</div><div class="hs-lbl">resting HR</div></div>
-          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['hrv_sdnn_ms'],0)}</div><div class="hs-lbl">HRV ms</div></div>
-          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['vo2_max'],1)}</div><div class="hs-lbl">VO₂max</div></div>
-          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['exercise_min_week'],0)}</div><div class="hs-lbl">min/wk</div></div>
+          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['steps'],0)}</div><div class="hs-lbl" data-i18n="steps/day">steps/day</div></div>
+          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['sleep_hours'],1)}</div><div class="hs-lbl" data-i18n="sleep hrs">sleep hrs</div></div>
+          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['resting_hr_bpm'],0)}</div><div class="hs-lbl" data-i18n="resting HR">resting HR</div></div>
+          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['hrv_sdnn_ms'],0)}</div><div class="hs-lbl" data-i18n="HRV ms">HRV ms</div></div>
+          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['vo2_max'],1)}</div><div class="hs-lbl" data-i18n="VO₂max">VO₂max</div></div>
+          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['exercise_min_week'],0)}</div><div class="hs-lbl" data-i18n="min/wk">min/wk</div></div>
         </div>
       </div>
       <div class="hero-gauge-wrap">
         <div style="font-family:'Space Grotesk',-apple-system,sans-serif;font-size:.62rem;
                     font-weight:600;letter-spacing:.10em;text-transform:uppercase;
-                    color:#475569;margin-bottom:2px">Health Score</div>
+                    color:#475569;margin-bottom:2px" data-i18n="Health Score">Health Score</div>
         <canvas id="gaugeCanvas" width="280" height="190"
                 style="display:block"></canvas>
         <div class="gauge-grade-row">
           <span style="font-size:2.2rem;font-weight:700;color:{grade_color}">{grade}</span>
-          <span style="font-size:.85rem;color:{grade_color};opacity:.8">{grade_cat}</span>
+          <span style="font-size:.85rem;color:{grade_color};opacity:.8" data-i18n="{grade_cat}">{grade_cat}</span>
         </div>
         <div style="font-size:.62rem;color:#475569;text-align:center;line-height:1.55">
           Weighted composite · 6 metrics · 90&#8209;day avg<br>
@@ -579,19 +603,19 @@ a:hover{{text-decoration:underline}}
 
   <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">
     <div class="stat-card" style="--accent:#fb923c">
-      <div class="sc-title">Total Workouts</div>
+      <div class="sc-title" data-i18n="Total Workouts">Total Workouts</div>
       <div class="sc-value" style="color:#fb923c">{wo['total']}</div>
-      <div class="sc-unit">sessions</div>
+      <div class="sc-unit" data-i18n="sessions">sessions</div>
     </div>
     <div class="stat-card" style="--accent:#fb923c">
-      <div class="sc-title">Total Hours</div>
+      <div class="sc-title" data-i18n="Total Hours">Total Hours</div>
       <div class="sc-value" style="color:#fb923c">{wo['total_hours']}</div>
-      <div class="sc-unit">hours</div>
+      <div class="sc-unit" data-i18n="hours">hours</div>
     </div>
     <div class="stat-card" style="--accent:#fb923c">
-      <div class="sc-title">Total Distance</div>
+      <div class="sc-title" data-i18n="Total Distance">Total Distance</div>
       <div class="sc-value" style="color:#fb923c">{wo['total_km']}</div>
-      <div class="sc-unit">km</div>
+      <div class="sc-unit" data-i18n="km">km</div>
     </div>
   </div>
 
@@ -871,6 +895,84 @@ new Chart(document.getElementById('cWoMo'), {{
     }}
   }}
 }});
+
+const ALL_CHARTS = Object.values(Chart.instances);
+
+// ── i18n ──
+const ZH = {{
+  "Activity":"运动活跃度","Cardiovascular Health":"心血管健康",
+  "Cardiorespiratory Fitness":"心肺适能","Sleep":"睡眠",
+  "Vitals":"生理指标","Body Weight":"体重","Workouts":"锻炼记录",
+  "Daily Steps":"每日步数","Exercise Min / Week":"每周运动",
+  "Resting Heart Rate":"静息心率","Walking Heart Rate":"步行心率",
+  "HRV — SDNN":"心率变异性","VO₂ Max":"最大摄氧量",
+  "Sleep Duration":"睡眠时长","Deep Sleep (N3)":"深度睡眠",
+  "REM Sleep":"快眼动睡眠","Blood Oxygen (SpO₂)":"血氧饱和度",
+  "Respiratory Rate":"呼吸频率",
+  "Total Workouts":"总锻炼次数","Total Hours":"总时长","Total Distance":"总距离",
+  "Highly Active":"非常活跃","Active":"活跃","Somewhat Active":"中等活跃",
+  "Low Active":"低活跃","Sedentary":"久坐",
+  "Meets Guidelines":"达标","Partially Active":"部分达标","Below Guidelines":"未达标",
+  "Athletic":"运动员级","Optimal":"最优","Normal":"正常",
+  "Elevated":"偏高","Tachycardia":"心动过速",
+  "Fit":"体能好","Average":"一般","High":"偏高",
+  "Good":"良好","Fair":"一般","Low":"偏低",
+  "Excellent":"优秀","Poor":"较差","Very Poor":"很差",
+  "Recommended":"推荐范围","Borderline":"边缘",
+  "Long Sleep":"睡眠偏多","Insufficient":"睡眠不足",
+  "No Data":"暂无数据","—":"—",
+  "Below Average":"低于均值",
+  "Health Score":"健康评分",
+  "steps/day":"步/天","sleep hrs":"睡眠时长","resting HR":"静息心率",
+  "HRV ms":"心率变异","VO₂max":"最大摄氧量","min/wk":"分钟/周",
+  "sessions":"次","hours":"小时","km":"公里",
+}};
+let _lang = localStorage.getItem('aw-lang') || 'en';
+function toggleLang() {{
+  _lang = _lang === 'en' ? 'zh' : 'en';
+  localStorage.setItem('aw-lang', _lang);
+  _applyLang();
+}}
+function _applyLang() {{
+  const dict = _lang === 'zh' ? ZH : {{}};
+  document.querySelectorAll('[data-i18n]').forEach(el => {{
+    el.textContent = dict[el.dataset.i18n] ?? el.dataset.i18n;
+  }});
+  document.getElementById('langBtn').textContent = _lang === 'en' ? '中文' : 'EN';
+}}
+
+// ── theme ──
+function toggleTheme() {{
+  const light = document.documentElement.classList.toggle('light');
+  localStorage.setItem('aw-theme', light ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = light ? '🌙' : '☀️';
+  const gc = light ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.04)';
+  const tc = '#475569';
+  Object.values(Chart.instances).forEach(c => {{
+    ['x','y'].forEach(ax => {{
+      if (c.options.scales?.[ax]) {{
+        c.options.scales[ax].grid.color = gc;
+        c.options.scales[ax].ticks.color = tc;
+      }}
+    }});
+    const tt = c.options.plugins?.tooltip;
+    if (tt) {{
+      tt.backgroundColor = light ? '#fff' : '#1e293b';
+      tt.titleColor = light ? '#0f172a' : '#e2e8f0';
+      tt.bodyColor = light ? '#475569' : '#94a3b8';
+    }}
+    c.update('none');
+  }});
+}}
+
+// ── init ──
+(function() {{
+  if (localStorage.getItem('aw-theme') === 'light') {{
+    document.documentElement.classList.add('light');
+    document.getElementById('themeBtn').textContent = '🌙';
+  }}
+  _applyLang();
+}})();
 </script>
 </body>
 </html>"""
