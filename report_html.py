@@ -785,15 +785,18 @@ a:hover{{text-decoration:underline}}
         </div>
       </div>
       <div class="hero-gauge-wrap">
+        <div style="font-family:'Space Grotesk',-apple-system,sans-serif;font-size:.62rem;
+                    font-weight:600;letter-spacing:.10em;text-transform:uppercase;
+                    color:#475569;margin-bottom:2px">Health Score</div>
         <canvas id="gaugeCanvas" width="280" height="190"
                 style="display:block"></canvas>
         <div class="gauge-grade-row">
           <span style="font-size:2.2rem;font-weight:700;color:{grade_color}">{grade}</span>
           <span style="font-size:.85rem;color:{grade_color};opacity:.8">{grade_cat}</span>
         </div>
-        <div style="font-size:.65rem;color:#475569;text-align:center;max-width:200px;line-height:1.4">
-          Weighted composite · 6 metrics · 90-day avg<br>
-          {"Steps 20% · Sleep 20% · RHR 15% · HRV 15% · VO₂ 15% · Exercise 15%"}
+        <div style="font-size:.62rem;color:#475569;text-align:center;line-height:1.55">
+          Weighted composite · 6 metrics · 90&#8209;day avg<br>
+          Steps 20% · Sleep 20% · RHR/HRV/VO₂/Ex 15% each
         </div>
       </div>
     </div>
@@ -1167,17 +1170,11 @@ new Chart(document.getElementById('cWoTypes'), {{
     ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2);
     ctx.fillStyle = '#f1f5f9'; ctx.fill();
 
-    // ── score number ──
-    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    // ── score number — centered in arc, well above needle base ──
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = zoneColor(pct);
-    ctx.font = `bold ${{Math.round(R * 0.50)}}px 'JetBrains Mono','SF Mono',monospace`;
-    ctx.fillText(Math.round(pct * 100), cx, cy - R * 0.20);
-
-    // ── label ──
-    ctx.fillStyle = '#475569';
-    ctx.font = `${{Math.round(R * 0.13)}}px Inter, sans-serif`;
-    ctx.textBaseline = 'top';
-    ctx.fillText('HEALTH SCORE', cx, cy - R * 0.04);
+    ctx.font = `bold ${{Math.round(R * 0.52)}}px 'JetBrains Mono','SF Mono',monospace`;
+    ctx.fillText(Math.round(pct * 100), cx, cy - R * 0.32);
   }}
 
   // animated fill
