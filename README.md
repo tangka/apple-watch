@@ -44,13 +44,18 @@ Parser takes ~1 minute per GB of XML. The report generator runs in <1 s.
 
 ### 3. (Optional) Install as a Claude Code skill
 
-Clone the repo to your user-level skills directory:
+Clone the repo to your user-level skills directory, then link the slash command:
 
 ```bash
+# 1. Install the skill (auto-discovery via SKILL.md frontmatter)
 git clone <repo> ~/.claude/skills/apple-health
+
+# 2. Link the /apple-health slash command into your user-level commands dir
+mkdir -p ~/.claude/commands
+ln -sf ~/.claude/skills/apple-health/.claude/commands/apple-health.md ~/.claude/commands/apple-health.md
 ```
 
-Then in Claude Code, the skill auto-invokes when you mention Apple Health analysis, or call it explicitly:
+Then **restart Claude Code** to pick up the new command. From any working directory:
 
 ```
 /apple-health ~/Downloads/<your-export>.zip
@@ -58,7 +63,7 @@ Then in Claude Code, the skill auto-invokes when you mention Apple Health analys
 /apple-health q: my best sleep month?    # Q&A from parsed CSVs
 ```
 
-The `.claude/commands/apple-health.md` file in the repo also exposes it as a project-level slash command for development.
+The skill also auto-invokes when you mention Apple Health analysis in natural language (no slash command needed), because the description in `SKILL.md` triggers Claude's skill discovery.
 
 ---
 
