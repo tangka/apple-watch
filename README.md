@@ -4,7 +4,7 @@ Self-contained, evidence-based HTML reports from Apple Watch / iPhone Health exp
 
 | | |
 |---|---|
-| **Input** | Apple Health export ZIP — `export.zip` (English locale) or `导出.zip` (Chinese locale). Any other locale's XML name is auto-detected. |
+| **Input** | Apple Health export ZIP (Apple names it differently per locale — pass any path; the parser auto-detects the XML inside). |
 | **Output** | One self-contained `health_report.html` file — no CDN, no network, no tracking |
 | **Languages** | EN · 中文 · ES · FR · DE · 日本語 · 한국어 (auto-detected from system) |
 | **Theme** | Light/dark (auto-detected from `prefers-color-scheme`) |
@@ -28,14 +28,14 @@ Self-contained, evidence-based HTML reports from Apple Watch / iPhone Health exp
 
 ### 1. Get your data
 
-iPhone → **Health** app → tap your profile icon (top-right) → **Export All Health Data**. Save the resulting `导出.zip` (or `export.zip`) somewhere you can find it.
+iPhone → **Health** app → tap your profile icon (top-right) → **Export All Health Data**. Save the resulting ZIP somewhere you can find it — Apple names the file according to your iPhone's locale (`export.zip`, `导出.zip`, etc.), but any name works.
 
 ### 2. Run the pipeline
 
 ```bash
 git clone <repo> apple-health
 cd apple-health
-python3 health_parser.py --zip ~/Downloads/导出.zip
+python3 health_parser.py --zip ~/Downloads/<your-export>.zip
 python3 report_html.py --data ./latest_parsed
 open ./latest_parsed/health_report.html
 ```
@@ -53,7 +53,7 @@ git clone <repo> ~/.claude/skills/apple-health
 Then in Claude Code, the skill auto-invokes when you mention Apple Health analysis, or call it explicitly:
 
 ```
-/apple-health ~/Downloads/导出.zip
+/apple-health ~/Downloads/<your-export>.zip
 /apple-health --report                    # regenerate HTML only
 /apple-health q: my best sleep month?    # Q&A from parsed CSVs
 ```

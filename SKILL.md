@@ -11,7 +11,7 @@ This skill runs a 3-stage pipeline against an Apple Health export ZIP:
 2. **`report_html.py`** — generates a self-contained interactive HTML report
 3. Q&A mode — reads the parsed CSVs to answer specific questions
 
-The export ZIP is named differently by region: **`export.zip`** for English-locale iPhones, **`导出.zip`** for Chinese-locale iPhones (likewise `export.xml` vs `导出.xml` inside). The parser auto-detects whichever `.xml` file the ZIP contains (skipping the small `export_cda.xml` CDA wrapper), so the user can pass any locale's export without renaming.
+Apple names the export differently depending on the iPhone's locale (e.g. `export.zip` in English, `导出.zip` in Chinese, etc.). The user supplies the ZIP path; the parser doesn't care about the name. After extraction, `find_xml_in_dir()` picks up whichever `.xml` file the archive contains (skipping the small `export_cda.xml` CDA wrapper).
 
 All Python scripts live next to this SKILL.md. They use `__file__` to resolve relative paths, so the directory is fully relocatable (e.g. clone into `~/.claude/skills/apple-health/` to install as a user-level skill).
 
@@ -98,8 +98,8 @@ Always append:
 
 | Symptom | Action |
 |---|---|
-| ZIP path not found | Remind user: iPhone → Health app → profile icon → Export All Health Data. File is named `export.zip` (English locale) or `导出.zip` (Chinese locale) |
-| No `.xml` found after extraction | Search recursively for any `.xml` in `latest_raw/`; skip `export_cda.xml` |
+| ZIP path not found | Remind user: iPhone → Health app → profile icon → Export All Health Data. The exported filename is localized by Apple — whatever the user got is fine, just pass the path |
+| No `.xml` found after extraction | The parser already skips `export_cda.xml` and picks the other `.xml`; verify the ZIP isn't corrupted |
 | `daily_metrics.csv` empty | Source filter may have excluded all data; suggest re-running with `--all-sources` |
 | Report import error | Verify `latest_parsed/meta.json` exists; if missing, re-run the parser |
 | `vendor/chart.min.js` missing | The first `report_html.py` run downloads it automatically. Requires network access |

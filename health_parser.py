@@ -1,9 +1,14 @@
 """
-Apple Health export parser — stream-parses export.xml (1-2 GB) from a zip or directory.
+Apple Health export parser — stream-parses the export XML (1–2 GB) from a zip or directory.
+
+Apple's exported ZIP and XML are named according to the iPhone's locale
+(e.g. export.zip / 导出.zip / etc.). The parser doesn't care about names:
+pass any locale's ZIP via --zip, and find_xml_in_dir() will pick up the
+right .xml after extraction (skipping export_cda.xml).
 
 Usage:
-    python health_parser.py --zip ~/Downloads/导出.zip --out ./output
-    python health_parser.py --xml ./apple_health_export/导出.xml --out ./output
+    python health_parser.py --zip ~/Downloads/<your-export>.zip --out ./output
+    python health_parser.py --xml ./apple_health_export/<your-export>.xml --out ./output
 """
 from __future__ import annotations
 
