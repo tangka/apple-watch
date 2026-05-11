@@ -1,0 +1,23 @@
+# Apple Health raw exports — personal data, never commit
+latest_raw/
+latest_parsed/
+
+# Old one-off scripts (superseded by health_parser.py)
+_unzip.py
+parse_health.py
+analyze_postop.py
+analyze_presurgery.py
+
+# Generated outputs
+apple_watch_route_outputs/
+apple_watch_trend_outputs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# macOS
+.DS_Store

@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+
+    <!-- Background gradient -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#07101f"/>
+      <stop offset="100%" stop-color="#130d2e"/>
+    </linearGradient>
+
+    <!-- ECG line neon gradient: cyan → violet → pink -->
+    <linearGradient id="ecg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#22d3ee"/>
+      <stop offset="48%"  stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#f472b6"/>
+    </linearGradient>
+
+    <!-- Central glow blob -->
+    <radialGradient id="glow" cx="50%" cy="52%" r="48%">
+      <stop offset="0%"   stop-color="#6366f1" stop-opacity="0.45"/>
+      <stop offset="70%"  stop-color="#22d3ee" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Blur for glow halo on ECG line -->
+    <filter id="halo" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="14" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Clip to rounded square -->
+    <clipPath id="clip">
+      <rect width="512" height="512" rx="112" ry="112"/>
+    </clipPath>
+
+  </defs>
+
+  <!-- Rounded square bg -->
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#bg)"/>
+
+  <!-- Subtle border -->
+  <rect width="512" height="512" rx="112" ry="112"
+        fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="3"/>
+
+  <g clip-path="url(#clip)">
+
+    <!-- Central radial glow -->
+    <ellipse cx="256" cy="265" rx="210" ry="195" fill="url(#glow)"/>
+
+    <!-- Heart shape — very faint fill, soft stroke -->
+    <path d="M256 378
+             C242 362, 110 292, 108 190
+             C107 132, 152 98, 200 108
+             C224 113, 246 132, 256 152
+             C266 132, 288 113, 312 108
+             C360 98, 405 132, 404 190
+             C402 292, 270 362, 256 378Z"
+          fill="rgba(255,255,255,0.04)"
+          stroke="rgba(255,255,255,0.11)"
+          stroke-width="5"/>
+
+    <!-- ECG / heartbeat line — glow halo layer -->
+    <path d="M 72,257
+             L 162,257
+             L 178,243
+             L 192,257
+             L 207,257
+             L 220,275
+             L 248,148
+             L 270,298
+             L 286,257
+             L 302,257
+             L 316,240
+             L 332,257
+             L 440,257"
+          fill="none"
+          stroke="url(#ecg)"
+          stroke-width="26"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          opacity="0.28"
+          filter="url(#halo)"/>
+
+    <!-- ECG / heartbeat line — crisp main layer -->
+    <path d="M 72,257
+             L 162,257
+             L 178,243
+             L 192,257
+             L 207,257
+             L 220,275
+             L 248,148
+             L 270,298
+             L 286,257
+             L 302,257
+             L 316,240
+             L 332,257
+             L 440,257"
+          fill="none"
+          stroke="url(#ecg)"
+          stroke-width="11"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+
+    <!-- Pulse dot at peak -->
+    <circle cx="248" cy="148" r="11" fill="#f472b6" opacity="0.9"/>
+    <circle cx="248" cy="148" r="20" fill="#f472b6" opacity="0.2"/>
+
+  </g>
+</svg>
