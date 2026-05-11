@@ -292,15 +292,24 @@ def parse_xml(xml_path: str, watch_only: bool, out_dir: str):
         ("exercise_min", "exercise_min"),
     ]
 
+    # Sleep tracking requires sustained overnight wear. Days with < 1 h recorded
+    # sleep usually mean the watch was off the wrist. Threshold is conservative
+    # so genuine insomnia nights (1–2 h actual sleep) are still counted.
+    SLEEP_COLS = {"sleep_hours","sleep_deep_h","sleep_rem_h","sleep_core_h","sleep_awake_h"}
+    MIN_SLEEP_HOURS = 1.0
+
     def aggregate(period_fn):
         bucket: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))
         bucket_sum: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
         for d in dates:
             p = period_fn(d)
             row = daily[d]
+            night_worn = (row.get("sleep_hours") or 0) >= MIN_SLEEP_HOURS
             for col, key in AVG_METRICS:
                 v = row.get(col)
                 if v is not None and v > 0:
+                    if col in SLEEP_COLS and not night_worn:
+                        continue
                     bucket[p][key].append(v)
             for col, key in SUM_METRICS:
                 v = row.get(col)

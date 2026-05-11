@@ -4,7 +4,7 @@ Self-contained, evidence-based HTML reports from Apple Watch / iPhone Health exp
 
 | | |
 |---|---|
-| **Input** | Apple Health export ZIP (`导出.zip` / `export.zip` from the iPhone Health app) |
+| **Input** | Apple Health export ZIP — `export.zip` (English locale) or `导出.zip` (Chinese locale). Any other locale's XML name is auto-detected. |
 | **Output** | One self-contained `health_report.html` file — no CDN, no network, no tracking |
 | **Languages** | EN · 中文 · ES · FR · DE · 日本語 · 한국어 (auto-detected from system) |
 | **Theme** | Light/dark (auto-detected from `prefers-color-scheme`) |

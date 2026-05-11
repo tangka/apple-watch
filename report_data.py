@@ -25,14 +25,26 @@ def load_data(data_dir):
 
 SPO2_FIELDS = {"spo2", "spo2_avg"}
 
+# Sleep tracking requires sustained wrist contact through the night. Days with
+# very short recorded sleep (< 1 h) almost always mean the watch was off the
+# wrist for most of the night, not a real 17-minute "sleep" night. The 1 h
+# threshold is intentionally conservative so that genuine insomnia nights
+# (people who only sleep 1–2 hours) are still counted.
+SLEEP_FIELDS = {"sleep_hours", "sleep_deep_h", "sleep_rem_h", "sleep_core_h", "sleep_awake_h"}
+MIN_SLEEP_HOURS = 1.0
+
+
 def scale(field, v):
     if v is not None and field in SPO2_FIELDS and v <= 1.5:
         return round(v * 100, 1)
     return v
 
 def recent_avg(daily, field, days=90):
-    vals = [scale(field, flt(r.get(field)))
-            for r in sorted(daily, key=lambda r: r["date"], reverse=True)[:days]]
+    rows = sorted(daily, key=lambda r: r["date"], reverse=True)[:days]
+    # Drop watch-not-worn nights for any sleep-related metric.
+    if field in SLEEP_FIELDS:
+        rows = [r for r in rows if (flt(r.get("sleep_hours")) or 0) >= MIN_SLEEP_HOURS]
+    vals = [scale(field, flt(r.get(field))) for r in rows]
     vals = [v for v in vals if v is not None and v > 0]
     return round(sum(vals)/len(vals), 1) if vals else None
 

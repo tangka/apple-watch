@@ -7,9 +7,11 @@ description: Analyze Apple Health export ZIP and generate an interactive HTML re
 
 This skill runs a 3-stage pipeline against an Apple Health export ZIP:
 
-1. **`health_parser.py`** — parses `导出.xml` (typically 0.3–2 GB) into CSV/JSON
+1. **`health_parser.py`** — parses the export XML (typically 0.3–2 GB) into CSV/JSON
 2. **`report_html.py`** — generates a self-contained interactive HTML report
 3. Q&A mode — reads the parsed CSVs to answer specific questions
+
+The export ZIP is named differently by region: **`export.zip`** for English-locale iPhones, **`导出.zip`** for Chinese-locale iPhones (likewise `export.xml` vs `导出.xml` inside). The parser auto-detects whichever `.xml` file the ZIP contains (skipping the small `export_cda.xml` CDA wrapper), so the user can pass any locale's export without renaming.
 
 All Python scripts live next to this SKILL.md. They use `__file__` to resolve relative paths, so the directory is fully relocatable (e.g. clone into `~/.claude/skills/apple-health/` to install as a user-level skill).
 
@@ -96,8 +98,8 @@ Always append:
 
 | Symptom | Action |
 |---|---|
-| ZIP path not found | Remind user: iPhone → Health app → profile icon → Export All Health Data |
-| `导出.xml` not found after extraction | Search recursively for any `.xml` in `latest_raw/` |
+| ZIP path not found | Remind user: iPhone → Health app → profile icon → Export All Health Data. File is named `export.zip` (English locale) or `导出.zip` (Chinese locale) |
+| No `.xml` found after extraction | Search recursively for any `.xml` in `latest_raw/`; skip `export_cda.xml` |
 | `daily_metrics.csv` empty | Source filter may have excluded all data; suggest re-running with `--all-sources` |
 | Report import error | Verify `latest_parsed/meta.json` exists; if missing, re-run the parser |
 | `vendor/chart.min.js` missing | The first `report_html.py` run downloads it automatically. Requires network access |
