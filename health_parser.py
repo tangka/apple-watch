@@ -104,7 +104,7 @@ def parse_dt(s: str) -> datetime:
 def is_watch(source_name: str, device: str | None) -> bool:
     s = (source_name or "").lower()
     d = (device or "").lower()
-    return "watch" in s or "watch" in d or "手表" in (source_name or "")
+    return "watch" in s or "watch" in d  # Apple always uses English "Watch" in source names
 
 def floatish(v):
     try:
