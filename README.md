@@ -1,6 +1,8 @@
 # Apple Health Report
 
-Self-contained, evidence-based HTML reports from Apple Watch / iPhone Health exports — and a Claude Code skill that orchestrates the pipeline.
+> **Claude Code skill** — install once, then `/apple-health ~/Downloads/export.zip` from anywhere.
+
+Self-contained, evidence-based HTML reports from Apple Watch / iPhone Health exports, powered by a Claude Code skill that orchestrates the full pipeline.
 
 | | |
 |---|---|
