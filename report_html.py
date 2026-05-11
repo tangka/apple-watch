@@ -147,6 +147,71 @@ BENCHMARKS = {
 }
 
 
+# ─────────────────────────────────────────── VO₂max age/sex tables (ACSM) ──
+
+_E,_G,_FA,_P,_VP = "#4ade80","#86efac","#facc15","#fb923c","#f87171"
+VO2MAX_LEVELS = {
+    "male": {
+        (20,29): [(51.1,None,"Excellent",_E),(45.4,51.0,"Good",_G),(41.7,45.3,"Fair",_FA),(37.1,41.6,"Poor",_P),(0,37.0,"Very Poor",_VP)],
+        (30,39): [(49.3,None,"Excellent",_E),(43.9,49.2,"Good",_G),(39.9,43.8,"Fair",_FA),(35.7,39.8,"Poor",_P),(0,35.6,"Very Poor",_VP)],
+        (40,49): [(47.2,None,"Excellent",_E),(41.8,47.1,"Good",_G),(37.1,41.7,"Fair",_FA),(33.0,37.0,"Poor",_P),(0,32.9,"Very Poor",_VP)],
+        (50,59): [(43.4,None,"Excellent",_E),(38.1,43.3,"Good",_G),(33.9,38.0,"Fair",_FA),(30.2,33.8,"Poor",_P),(0,30.1,"Very Poor",_VP)],
+        (60,99): [(41.0,None,"Excellent",_E),(35.8,40.9,"Good",_G),(31.5,35.7,"Fair",_FA),(26.9,31.4,"Poor",_P),(0,26.8,"Very Poor",_VP)],
+    },
+    "female": {
+        (20,29): [(43.9,None,"Excellent",_E),(39.5,43.8,"Good",_G),(36.1,39.4,"Fair",_FA),(32.3,36.0,"Poor",_P),(0,32.2,"Very Poor",_VP)],
+        (30,39): [(42.4,None,"Excellent",_E),(37.8,42.3,"Good",_G),(34.6,37.7,"Fair",_FA),(31.5,34.5,"Poor",_P),(0,31.4,"Very Poor",_VP)],
+        (40,49): [(39.9,None,"Excellent",_E),(36.3,39.8,"Good",_G),(33.0,36.2,"Fair",_FA),(29.4,32.9,"Poor",_P),(0,29.3,"Very Poor",_VP)],
+        (50,59): [(36.7,None,"Excellent",_E),(32.3,36.6,"Good",_G),(29.4,32.2,"Fair",_FA),(25.9,29.3,"Poor",_P),(0,25.8,"Very Poor",_VP)],
+        (60,99): [(33.0,None,"Excellent",_E),(29.4,32.9,"Good",_G),(27.2,29.3,"Fair",_FA),(23.7,27.1,"Poor",_P),(0,23.6,"Very Poor",_VP)],
+    },
+}
+
+def get_vo2_levels(age, sex):
+    tbl = VO2MAX_LEVELS.get("male" if (sex or "").lower() not in ("female","f") else "female",
+                            VO2MAX_LEVELS["male"])
+    for (lo, hi), levels in tbl.items():
+        if lo <= (age or 30) <= hi:
+            return levels
+    return VO2MAX_LEVELS["male"][(20,29)]
+
+
+# ─────────────────────────────────────────── Health score engine ──
+
+SCORE_MAP = {
+    "steps":             {"Highly Active":100,"Active":78,"Somewhat Active":56,"Low Active":34,"Sedentary":12},
+    "exercise_min_week": {"Meets Guidelines":100,"Partially Active":58,"Below Guidelines":18},
+    "resting_hr_bpm":    {"Athletic":100,"Optimal":85,"Normal":65,"Elevated":35,"Tachycardia":10},
+    "hrv_sdnn_ms":       {"Good":100,"Fair":58,"Low":18},
+    "vo2_max":           {"Excellent":100,"Good":78,"Fair":56,"Poor":34,"Very Poor":12},
+    "sleep_hours":       {"Recommended":100,"Long Sleep":65,"Borderline":50,"Insufficient":18},
+}
+SCORE_WEIGHTS = {
+    "steps":0.20,"exercise_min_week":0.15,"resting_hr_bpm":0.15,
+    "hrv_sdnn_ms":0.15,"vo2_max":0.15,"sleep_hours":0.20,
+}
+
+def compute_health_score(avgs):
+    tw = ws = 0.0
+    for key, w in SCORE_WEIGHTS.items():
+        v = avgs.get(key)
+        if v is None: continue
+        label, _ = get_status(v, key)
+        s = SCORE_MAP.get(key, {}).get(label)
+        if s is None: continue
+        ws += s * w; tw += w
+    if tw < 0.3: return None
+    return round(ws / tw)
+
+def score_grade(score):
+    if score is None: return "—", "#475569", "No Data"
+    if score >= 85:   return "A", "#4ade80",  "Excellent"
+    if score >= 70:   return "B", "#86efac",  "Good"
+    if score >= 55:   return "C", "#facc15",  "Fair"
+    if score >= 40:   return "D", "#fb923c",  "Below Average"
+    return                        "F", "#f87171",  "Poor"
+
+
 # ─────────────────────────────────────────── Helpers ──
 
 def load_csv(path):
@@ -308,6 +373,29 @@ def build_html(d):
     total_days = meta.get("total_days", len(daily))
     generated  = meta.get("generated_at", datetime.now().isoformat())[:10]
 
+    # ── Profile: age / sex ──
+    profile = meta.get("profile", {})
+    dob_str = profile.get("date_of_birth", "")
+    sex     = profile.get("biological_sex", "")   # "male" / "female"
+    age     = None
+    if dob_str:
+        try:
+            from datetime import date as _date
+            dob_d = _date.fromisoformat(dob_str)
+            today = _date.today()
+            age = today.year - dob_d.year - ((today.month, today.day) < (dob_d.month, dob_d.day))
+        except Exception:
+            pass
+
+    # Adjust VO₂max benchmark levels for this person's age & sex
+    if age is not None:
+        BENCHMARKS["vo2_max"]["levels"] = get_vo2_levels(age, sex)
+        BENCHMARKS["vo2_max"]["note"] = (
+            f"ACSM norms for {sex.title() if sex else 'adult'}, age {age}. "
+            "Low cardiorespiratory fitness is a strong independent CV risk factor (AHA). "
+            "Apple Watch estimates via outdoor walk/run — may differ ±3–5 mL/kg/min from lab."
+        )
+
     avgs = {k: recent_avg(daily, k, 90) for k in [
         "steps","resting_hr_bpm","walking_hr_bpm","hrv_sdnn_ms","vo2_max",
         "sleep_hours","sleep_deep_h","sleep_rem_h","sleep_core_h",
@@ -322,6 +410,9 @@ def build_html(d):
             iso = date.fromisoformat(r["date"]).isocalendar()
             weekly_ex[f"{iso[0]}-{iso[1]:02d}"] += v
     avgs["exercise_min_week"] = round(sum(weekly_ex.values())/len(weekly_ex),0) if weekly_ex else None
+
+    health_score                = compute_health_score(avgs)
+    grade, grade_color, grade_cat = score_grade(health_score)
 
     wo = workout_summary(wo_rows)
 
@@ -457,6 +548,15 @@ a:hover{{text-decoration:underline}}
   background:linear-gradient(160deg,#0a0f1e 0%,#0d1a3a 40%,#130d2e 100%);
   padding:56px 32px 48px;border-bottom:1px solid var(--border);
 }}
+.hero-layout{{display:flex;align-items:center;gap:40px;flex-wrap:wrap}}
+.hero-text{{flex:1;min-width:260px}}
+.hero-gauge-wrap{{
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px;
+}}
+.gauge-grade-row{{
+  display:flex;align-items:baseline;gap:8px;
+  font-family:'JetBrains Mono','SF Mono','Fira Code',monospace;
+}}
 .hero::before{{
   content:'';position:absolute;inset:0;
   background:radial-gradient(ellipse 60% 50% at 70% 40%,rgba(99,102,241,.18) 0%,transparent 70%),
@@ -586,15 +686,36 @@ a:hover{{text-decoration:underline}}
       {_icon_img}
       <div class="hero-eyebrow" style="margin-bottom:0">Apple Watch · Health Report</div>
     </div>
-    <h1>Your Health Data,<br>By the Numbers</h1>
-    <div class="hero-sub">{date_start} – {date_end} &nbsp;·&nbsp; {total_days:,} days &nbsp;·&nbsp; {wo['total']} workouts &nbsp;·&nbsp; {wo['total_hours']} workout hours &nbsp;·&nbsp; Generated {generated}</div>
-    <div class="hero-strip">
-      <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['steps'],0)}</div><div class="hs-lbl">steps/day</div></div>
-      <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['sleep_hours'],1)}</div><div class="hs-lbl">sleep hrs</div></div>
-      <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['resting_hr_bpm'],0)}</div><div class="hs-lbl">resting HR</div></div>
-      <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['hrv_sdnn_ms'],0)}</div><div class="hs-lbl">HRV ms</div></div>
-      <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['vo2_max'],1)}</div><div class="hs-lbl">VO₂max</div></div>
-      <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['exercise_min_week'],0)}</div><div class="hs-lbl">min/wk</div></div>
+    <div class="hero-layout">
+      <div class="hero-text">
+        <h1>Your Health Data,<br>By the Numbers</h1>
+        <div class="hero-sub">
+          {date_start} – {date_end} &nbsp;·&nbsp; {total_days:,} days &nbsp;·&nbsp;
+          {wo['total']} workouts &nbsp;·&nbsp;
+          {"Male" if (sex or "").lower() == "male" else "Female" if (sex or "").lower() == "female" else ""}{(", age " + str(age)) if age else ""} &nbsp;·&nbsp;
+          Generated {generated}
+        </div>
+        <div class="hero-strip">
+          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['steps'],0)}</div><div class="hs-lbl">steps/day</div></div>
+          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['sleep_hours'],1)}</div><div class="hs-lbl">sleep hrs</div></div>
+          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['resting_hr_bpm'],0)}</div><div class="hs-lbl">resting HR</div></div>
+          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['hrv_sdnn_ms'],0)}</div><div class="hs-lbl">HRV ms</div></div>
+          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['vo2_max'],1)}</div><div class="hs-lbl">VO₂max</div></div>
+          <div class="hs-cell"><div class="hs-val">{fmt_num(avgs['exercise_min_week'],0)}</div><div class="hs-lbl">min/wk</div></div>
+        </div>
+      </div>
+      <div class="hero-gauge-wrap">
+        <canvas id="gaugeCanvas" width="280" height="190"
+                style="display:block"></canvas>
+        <div class="gauge-grade-row">
+          <span style="font-size:2.2rem;font-weight:700;color:{grade_color}">{grade}</span>
+          <span style="font-size:.85rem;color:{grade_color};opacity:.8">{grade_cat}</span>
+        </div>
+        <div style="font-size:.65rem;color:#475569;text-align:center;max-width:200px;line-height:1.4">
+          Weighted composite · 6 metrics · 90-day avg<br>
+          {"Steps 20% · Sleep 20% · RHR 15% · HRV 15% · VO₂ 15% · Exercise 15%"}
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -869,6 +990,129 @@ new Chart(document.getElementById('cWoTypes'), {{
       grid:{{ color:'rgba(255,255,255,0.04)' }} }} }}
   }}
 }});
+
+// ── Health score gauge ──
+(function() {{
+  const SCORE = {health_score if health_score is not None else 0};
+  const canvas = document.getElementById('gaugeCanvas');
+  if (!canvas || !SCORE) return;
+  const ctx = canvas.getContext('2d');
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const W0 = canvas.width, H0 = canvas.height;
+  canvas.width  = W0 * DPR; canvas.height = H0 * DPR;
+  canvas.style.width = W0 + 'px'; canvas.style.height = H0 + 'px';
+  ctx.scale(DPR, DPR);
+
+  const W = W0, H = H0;
+  const cx = W / 2, cy = H * 0.84;
+  const R  = Math.min(W * 0.40, cy * 0.90);
+  const LW = Math.max(16, Math.round(R * 0.20));
+  const START = Math.PI * 0.75;   // 135° from east → lower-left
+  const SWEEP = Math.PI * 1.5;    // 270° sweep → lower-right
+
+  const ZONES = [
+    [0.00, 0.20, '#f87171'],
+    [0.20, 0.40, '#fb923c'],
+    [0.40, 0.60, '#facc15'],
+    [0.60, 0.80, '#86efac'],
+    [0.80, 1.00, '#4ade80'],
+  ];
+  function zoneColor(p) {{
+    for (const [a,b,c] of ZONES) if (p <= b + 0.001) return c;
+    return '#4ade80';
+  }}
+
+  function draw(pct) {{
+    ctx.clearRect(0, 0, W, H);
+
+    // ── background track ──
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, START, START + SWEEP);
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    ctx.lineWidth = LW; ctx.lineCap = 'butt'; ctx.stroke();
+
+    // ── zone bands (dim) ──
+    for (const [zs, ze, col] of ZONES) {{
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, START + SWEEP * zs, START + SWEEP * Math.min(ze, 1));
+      ctx.strokeStyle = col + '2a';
+      ctx.lineWidth = LW; ctx.lineCap = 'butt'; ctx.stroke();
+    }}
+
+    // ── major tick marks ──
+    for (let i = 0; i <= 20; i++) {{
+      const a = START + SWEEP * (i / 20);
+      const maj = i % 4 === 0;
+      const r1 = R - LW * 0.45 - (maj ? 8 : 3);
+      const r2 = R + LW * 0.45 + (maj ? 4 : 1);
+      ctx.beginPath();
+      ctx.moveTo(cx + r1 * Math.cos(a), cy + r1 * Math.sin(a));
+      ctx.lineTo(cx + r2 * Math.cos(a), cy + r2 * Math.sin(a));
+      ctx.strokeStyle = maj ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.10)';
+      ctx.lineWidth = maj ? 1.5 : 1; ctx.stroke();
+    }}
+    // tick labels at 0/50/100
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#374151';
+    ctx.font = `${{Math.round(R * 0.13)}}px Inter, sans-serif`;
+    for (const [frac, txt] of [[0,'0'],[0.5,'50'],[1,'100']]) {{
+      const a = START + SWEEP * frac;
+      const lr = R + LW * 0.9;
+      ctx.fillText(txt, cx + lr * Math.cos(a), cy + lr * Math.sin(a));
+    }}
+
+    // ── score fill arc ──
+    if (pct > 0) {{
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, START, START + SWEEP * pct);
+      ctx.strokeStyle = zoneColor(pct);
+      ctx.lineWidth = LW - 4; ctx.lineCap = 'round'; ctx.stroke();
+
+      // glow blob at tip
+      const tipA = START + SWEEP * pct;
+      const tx = cx + R * Math.cos(tipA), ty = cy + R * Math.sin(tipA);
+      const grd = ctx.createRadialGradient(tx, ty, 0, tx, ty, LW * 1.4);
+      grd.addColorStop(0, zoneColor(pct) + 'aa');
+      grd.addColorStop(1, 'transparent');
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(tx, ty, LW * 1.4, 0, Math.PI * 2); ctx.fill();
+    }}
+
+    // ── needle ──
+    const needleA = START + SWEEP * pct;
+    const nlen = R - LW * 0.5 - 4;
+    const nx = cx + nlen * Math.cos(needleA), ny = cy + nlen * Math.sin(needleA);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(nx, ny);
+    ctx.strokeStyle = '#f1f5f9'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#f1f5f9'; ctx.fill();
+
+    // ── score number ──
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = zoneColor(pct);
+    ctx.font = `bold ${{Math.round(R * 0.50)}}px 'JetBrains Mono','SF Mono',monospace`;
+    ctx.fillText(Math.round(pct * 100), cx, cy - R * 0.20);
+
+    // ── label ──
+    ctx.fillStyle = '#475569';
+    ctx.font = `${{Math.round(R * 0.13)}}px Inter, sans-serif`;
+    ctx.textBaseline = 'top';
+    ctx.fillText('HEALTH SCORE', cx, cy - R * 0.04);
+  }}
+
+  // animated fill
+  const target = SCORE / 100;
+  let startT = null;
+  const DUR = 1400;
+  function frame(ts) {{
+    if (!startT) startT = ts;
+    const t = Math.min((ts - startT) / DUR, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    draw(target * ease);
+    if (t < 1) requestAnimationFrame(frame);
+  }}
+  requestAnimationFrame(frame);
+}})();
 
 // Workouts per month
 new Chart(document.getElementById('cWoMo'), {{

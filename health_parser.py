@@ -151,6 +151,7 @@ def parse_xml(xml_path: str, watch_only: bool, out_dir: str):
     print(f"parsing {xml_path} ({os.path.getsize(xml_path)/1e9:.2f} GB)")
     t0 = time.time()
     n_rec = n_wo = 0
+    me_profile: dict = {}
 
     ctx = iterparse(xml_path, events=("end",))
     for _, elem in ctx:
@@ -232,7 +233,15 @@ def parse_xml(xml_path: str, watch_only: bool, out_dir: str):
                 "source": source,
             })
             elem.clear()
-        elif tag in ("ExportDate", "Me"):
+        elif tag == "Me":
+            dob = elem.attrib.get("HKCharacteristicTypeIdentifierDateOfBirth", "")
+            sex_raw = elem.attrib.get("HKCharacteristicTypeIdentifierBiologicalSex", "")
+            blood_raw = elem.attrib.get("HKCharacteristicTypeIdentifierBloodType", "")
+            if dob:      me_profile["date_of_birth"]   = dob
+            if sex_raw:  me_profile["biological_sex"]  = sex_raw.replace("HKBiologicalSex","").lower()
+            if blood_raw:me_profile["blood_type"]      = blood_raw.replace("HKBloodType","")
+            elem.clear()
+        elif tag == "ExportDate":
             elem.clear()
 
         if n_rec % 500_000 == 0 and n_rec:
@@ -385,6 +394,7 @@ def parse_xml(xml_path: str, watch_only: bool, out_dir: str):
         "total_workouts": len(workouts_sorted),
         "xml_path": xml_path,
         "out_dir": out_dir,
+        "profile": me_profile,
     }
     with open(os.path.join(out_dir, "meta.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
