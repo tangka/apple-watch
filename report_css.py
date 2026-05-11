@@ -171,10 +171,6 @@ html.light .chart-title{color:#374151}
 html.light .bm-tbl td{color:#374151 !important}
 html.light .ctrl-btn{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.15)}
 html.light .ctrl-btn:hover{background:rgba(0,0,0,.12)}
-/* i18n bilingual spans */
-.i18n-zh{display:none}
-html.zh .i18n-en{display:none}
-html.zh .i18n-zh{display:inline}
 /* Controls bar */
 .controls-bar{position:fixed;top:16px;right:16px;z-index:100;display:flex;gap:8px}
 .ctrl-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);

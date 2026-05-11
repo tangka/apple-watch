@@ -1,5 +1,11 @@
-"""JavaScript block builder for the Apple Health HTML report."""
+"""JavaScript block builder for the Apple Health HTML report.
+
+All static-label and workout-type translations are pulled from i18n.py and
+embedded in the JS as compact JSON objects. Dynamic text (insights, notes)
+is embedded directly in HTML data attributes by report_html.py.
+"""
 import json
+import i18n
 
 
 def js(v):
@@ -35,6 +41,12 @@ def build_js(d):
 
     from report_data import recent_avg
 
+    # Serialize i18n tables for embedding in JS
+    langs_json     = json.dumps(i18n.LANGS, ensure_ascii=False)
+    lang_names_json = json.dumps(i18n.LANG_NAMES, ensure_ascii=False)
+    static_json    = json.dumps(i18n.STATIC, ensure_ascii=False)
+    wo_types_json  = json.dumps(i18n.WO_TYPES, ensure_ascii=False)
+
     return f"""\
 // ── Chart.js dark theme defaults ──
 Chart.defaults.color = '#64748b';
@@ -52,7 +64,6 @@ const SCALE = {{
 const MO = {js(mo_short)};
 
 function hexAlpha(hex, a) {{
-  // convert #rrggbb to rgba(r,g,b,a) safely
   const r = parseInt(hex.slice(1,3),16);
   const g = parseInt(hex.slice(3,5),16);
   const b = parseInt(hex.slice(5,7),16);
@@ -178,14 +189,12 @@ new Chart(document.getElementById('cWoTypes'), {{
   const cx = W / 2, cy = H * 0.84;
   const R  = Math.min(W * 0.40, cy * 0.90);
   const LW = Math.max(16, Math.round(R * 0.20));
-  const START = Math.PI * 0.75;   // 135° from east → lower-left
-  const SWEEP = Math.PI * 1.5;    // 270° sweep → lower-right
+  const START = Math.PI * 0.75;
+  const SWEEP = Math.PI * 1.5;
 
   const ZONES = [
-    [0.00, 0.20, '#f87171'],
-    [0.20, 0.40, '#fb923c'],
-    [0.40, 0.60, '#facc15'],
-    [0.60, 0.80, '#86efac'],
+    [0.00, 0.20, '#f87171'], [0.20, 0.40, '#fb923c'],
+    [0.40, 0.60, '#facc15'], [0.60, 0.80, '#86efac'],
     [0.80, 1.00, '#4ade80'],
   ];
   function zoneColor(p) {{
@@ -195,22 +204,15 @@ new Chart(document.getElementById('cWoTypes'), {{
 
   function draw(pct) {{
     ctx.clearRect(0, 0, W, H);
-
-    // ── background track ──
-    ctx.beginPath();
-    ctx.arc(cx, cy, R, START, START + SWEEP);
+    ctx.beginPath(); ctx.arc(cx, cy, R, START, START + SWEEP);
     ctx.strokeStyle = 'rgba(255,255,255,0.07)';
     ctx.lineWidth = LW; ctx.lineCap = 'butt'; ctx.stroke();
-
-    // ── zone bands (dim) ──
     for (const [zs, ze, col] of ZONES) {{
       ctx.beginPath();
       ctx.arc(cx, cy, R, START + SWEEP * zs, START + SWEEP * Math.min(ze, 1));
       ctx.strokeStyle = col + '2a';
       ctx.lineWidth = LW; ctx.lineCap = 'butt'; ctx.stroke();
     }}
-
-    // ── major tick marks ──
     for (let i = 0; i <= 20; i++) {{
       const a = START + SWEEP * (i / 20);
       const maj = i % 4 === 0;
@@ -222,7 +224,6 @@ new Chart(document.getElementById('cWoTypes'), {{
       ctx.strokeStyle = maj ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.10)';
       ctx.lineWidth = maj ? 1.5 : 1; ctx.stroke();
     }}
-    // tick labels at 0/50/100
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = '#374151';
     ctx.font = `${{Math.round(R * 0.13)}}px Inter, sans-serif`;
@@ -231,15 +232,10 @@ new Chart(document.getElementById('cWoTypes'), {{
       const lr = R + LW * 0.9;
       ctx.fillText(txt, cx + lr * Math.cos(a), cy + lr * Math.sin(a));
     }}
-
-    // ── score fill arc ──
     if (pct > 0) {{
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, START, START + SWEEP * pct);
+      ctx.beginPath(); ctx.arc(cx, cy, R, START, START + SWEEP * pct);
       ctx.strokeStyle = zoneColor(pct);
       ctx.lineWidth = LW - 4; ctx.lineCap = 'round'; ctx.stroke();
-
-      // glow blob at tip
       const tipA = START + SWEEP * pct;
       const tx = cx + R * Math.cos(tipA), ty = cy + R * Math.sin(tipA);
       const grd = ctx.createRadialGradient(tx, ty, 0, tx, ty, LW * 1.4);
@@ -248,8 +244,6 @@ new Chart(document.getElementById('cWoTypes'), {{
       ctx.fillStyle = grd;
       ctx.beginPath(); ctx.arc(tx, ty, LW * 1.4, 0, Math.PI * 2); ctx.fill();
     }}
-
-    // ── needle ──
     const needleA = START + SWEEP * pct;
     const nlen = R - LW * 0.5 - 4;
     const nx = cx + nlen * Math.cos(needleA), ny = cy + nlen * Math.sin(needleA);
@@ -257,15 +251,12 @@ new Chart(document.getElementById('cWoTypes'), {{
     ctx.strokeStyle = '#f1f5f9'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke();
     ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2);
     ctx.fillStyle = '#f1f5f9'; ctx.fill();
-
-    // ── score number — centered in arc, well above needle base ──
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = zoneColor(pct);
     ctx.font = `bold ${{Math.round(R * 0.52)}}px 'JetBrains Mono','SF Mono',monospace`;
     ctx.fillText(Math.round(pct * 100), cx, cy - R * 0.32);
   }}
 
-  // animated fill
   const target = SCORE / 100;
   let startT = null;
   const DUR = 1400;
@@ -299,132 +290,50 @@ new Chart(document.getElementById('cWoMo'), {{
   }}
 }});
 
-const ALL_CHARTS = Object.values(Chart.instances);
-
-// ── i18n ──
-const ZH = {{
-  "Activity":"运动活跃度","Cardiovascular Health":"心血管健康",
-  "Cardiorespiratory Fitness":"心肺适能","Sleep":"睡眠",
-  "Vitals":"生理指标","Body Weight":"体重","Workouts":"锻炼记录",
-  "Daily Steps":"每日步数","Exercise Min / Week":"每周运动",
-  "Resting Heart Rate":"静息心率","Walking Heart Rate":"步行心率",
-  "HRV — SDNN":"心率变异性","VO₂ Max":"最大摄氧量",
-  "Sleep Duration":"睡眠时长","Deep Sleep (N3)":"深度睡眠",
-  "REM Sleep":"快眼动睡眠","Blood Oxygen (SpO₂)":"血氧饱和度",
-  "Respiratory Rate":"呼吸频率",
-  "Total Workouts":"总锻炼次数","Total Hours":"总时长","Total Distance":"总距离",
-  "Highly Active":"非常活跃","Active":"活跃","Somewhat Active":"中等活跃",
-  "Low Active":"低活跃","Sedentary":"久坐",
-  "Meets Guidelines":"达标","Partially Active":"部分达标","Below Guidelines":"未达标",
-  "Athletic":"运动员级","Optimal":"最优","Normal":"正常",
-  "Elevated":"偏高","Tachycardia":"心动过速",
-  "Fit":"体能好","Average":"一般","High":"偏高",
-  "Good":"良好","Fair":"一般","Low":"偏低",
-  "Excellent":"优秀","Poor":"较差","Very Poor":"很差",
-  "Recommended":"推荐范围","Borderline":"边缘",
-  "Long Sleep":"睡眠偏多","Insufficient":"睡眠不足",
-  "No Data":"暂无数据","—":"—",
-  "Below Average":"低于均值",
-  "Health Score":"健康评分",
-  "steps/day":"步/天","sleep hrs":"睡眠时长","resting HR":"静息心率",
-  "HRV ms":"心率变异","VO₂max":"最大摄氧量","min/wk":"分钟/周",
-  "sessions":"次","hours":"小时","km":"公里",
-  "bpm":"bpm","ms":"毫秒","mL/kg/min":"mL/kg/min",
-  "hrs/night":"小时/晚","hrs":"小时","%":"%","br/min":"次/分",
-  "hero.title":"你的健康数据，<br>数字说话",
-  "days":"天","workouts":"次锻炼","Male":"男","Female":"女",
-  "Generated":"生成于","age":"年龄",
-  "gauge.desc1":"加权综合 · 6项指标 · 90天均值",
-  "gauge.desc2":"步数20% · 睡眠20% · 静心率/HRV/摄氧量/运动各15%",
-  "Monthly Average Daily Steps":"月均日步数",
-  "Exercise Minutes / Week (monthly avg)":"每周运动时长（月均）",
-  "Average Daily Distance (km)":"日均距离（公里）",
-  "Resting Heart Rate (bpm)":"静息心率（bpm）",
-  "HRV — SDNN (ms)":"心率变异性 — SDNN（毫秒）",
-  "Walking Heart Rate (bpm)":"步行心率（bpm）",
-  "VO₂ Max (mL/kg/min) — Apple Watch estimate · gaps = no outdoor walk/run recorded":"最大摄氧量（毫升/千克/分钟）— Apple Watch 估算",
-  "Monthly Average Sleep Duration (hrs/night)":"月均睡眠时长（小时/晚）",
-  "Sleep Stages by Month — Stacked (hrs/night)":"月度睡眠阶段堆叠（小时/晚）",
-  "Sleep Stages — 90-Day Average (hrs/night)":"睡眠阶段 — 90天均值（小时/晚）",
-  "Blood Oxygen SpO₂ (%)":"血氧饱和度 SpO₂（%）",
-  "Respiratory Rate (breaths/min, measured during sleep)":"呼吸频率（次/分钟，睡眠中测量）",
-  "Monthly Average Body Mass (kg)":"月均体重（公斤）",
-  "Workout Type Distribution":"锻炼类型分布",
-  "Workouts per Month":"每月锻炼次数",
-}};
-
-const WO_TYPE_ZH = {{
-  // 球类运动
-  "AmericanFootball":"美式橄榄球","AustralianFootball":"澳式橄榄球",
-  "Badminton":"羽毛球","Baseball":"棒球","Basketball":"篮球",
-  "Bowling":"保龄球","Cricket":"板球","Curling":"冰壶",
-  "Handball":"手球","Hockey":"曲棍球","Lacrosse":"长曲棍球",
-  "Pickleball":"匹克球","Rugby":"橄榄球","Soccer":"足球",
-  "Softball":"垒球","Squash":"壁球","TableTennis":"乒乓球",
-  "Tennis":"网球","Volleyball":"排球",
-  // 格斗 / 武术
-  "Boxing":"拳击","Fencing":"击剑","MartialArts":"武术",
-  "Wrestling":"摔跤","Kickboxing":"踢拳",
-  // 跑步 / 步行 / 骑行
-  "Running":"跑步","Walking":"步行","Cycling":"骑行",
-  "HandCycling":"手摇自行车",
-  "WheelchairWalkPace":"轮椅慢行","WheelchairRunPace":"轮椅快行",
-  // 有氧 / 力量
-  "CrossTraining":"综合训练","MixedCardio":"混合有氧",
-  "HighIntensityIntervalTraining":"HIIT","JumpRope":"跳绳",
-  "StepTraining":"踏步训练","Stairs":"爬楼梯",
-  "StairClimbing":"登楼梯机","Elliptical":"椭圆机",
-  "Rowing":"划船机","FunctionalStrengthTraining":"功能性力量训练",
-  "TraditionalStrengthTraining":"传统力量训练",
-  "CoreTraining":"核心训练","Flexibility":"柔韧性训练",
-  // 身心 / 舞蹈
-  "Yoga":"瑜伽","Pilates":"普拉提","Barre":"芭蕾把杆",
-  "TaiChi":"太极拳","MindAndBody":"身心冥想",
-  "Dance":"舞蹈","CardioDance":"有氧舞蹈","SocialDance":"社交舞",
-  // 户外 / 登山
-  "Hiking":"登山/徒步","Climbing":"攀岩",
-  "CrossCountrySkiing":"越野滑雪","DownhillSkiing":"高山滑雪",
-  "Snowboarding":"单板滑雪","SnowSports":"雪上运动",
-  // 水上
-  "Swimming":"游泳（室内/室外）","SwimmingOpenWater":"开放水域游泳",
-  "WaterFitness":"水中健身","WaterPolo":"水球",
-  "WaterSports":"水上运动","SurfingSports":"冲浪","Sailing":"帆船",
-  "PaddleSports":"桨板/皮划艇","UnderwaterDiving":"潜水",
-  // 冰上
-  "SkatingSports":"冰/滑轮运动",
-  // 其他竞技
-  "Archery":"射箭","Golf":"高尔夫","Gymnastics":"体操",
-  "Racquetball":"回力球","TrackAndField":"田径",
-  "EquestrianSports":"马术","DiscSports":"飞盘运动",
-  "RacketSports":"拍类运动",
-  // 日常 / 特殊
-  "Fishing":"钓鱼","Hunting":"狩猎","Play":"休闲游玩",
-  "PreparationAndRecovery":"准备与恢复","Cooldown":"整理放松",
-  "FitnessGaming":"健身游戏","Transition":"过渡（铁三）",
-  "MixedMetabolicCardioTraining":"混合代谢有氧",
-  "Other":"其他","Unknown":"未知",
-}};
+// ════════════════════════════════════════════════════════════════════
+// i18n — all translations sourced from i18n.py
+// ════════════════════════════════════════════════════════════════════
+const LANGS      = {langs_json};
+const LANG_NAMES = {lang_names_json};
+const STATIC     = {static_json};
+const WO_TYPES   = {wo_types_json};
 const WO_EN_LABELS = {js(wo['top_types'])};
 
 let _lang = localStorage.getItem('aw-lang') || 'en';
+if (!LANGS.includes(_lang)) _lang = 'en';
+
 function toggleLang() {{
-  _lang = _lang === 'en' ? 'zh' : 'en';
+  const i = LANGS.indexOf(_lang);
+  _lang = LANGS[(i + 1) % LANGS.length];
   localStorage.setItem('aw-lang', _lang);
-  document.documentElement.classList.toggle('zh', _lang === 'zh');
+  document.documentElement.lang = _lang;
   _applyLang();
 }}
+
 function _applyLang() {{
-  const dict = _lang === 'zh' ? ZH : {{}};
+  const dict = STATIC[_lang] || {{}};
+  // Static labels — look up by EN key
   document.querySelectorAll('[data-i18n]').forEach(el => {{
     const v = dict[el.dataset.i18n];
     el.innerHTML = v !== undefined ? v : el.dataset.i18nOrig;
   }});
-  document.getElementById('langBtn').textContent = _lang === 'en' ? '中文' : 'EN';
+  // Dynamic multi-lang text — JSON dict baked into the element
+  document.querySelectorAll('[data-i18n-json]').forEach(el => {{
+    let table;
+    try {{ table = JSON.parse(el.dataset.i18nJson); }} catch(e) {{ return; }}
+    const v = table[_lang] ?? table.en;
+    if (v !== undefined) el.innerHTML = v;
+  }});
+  // Button: show NEXT language name as a hint of where the cycle goes
+  const nextLang = LANGS[(LANGS.indexOf(_lang) + 1) % LANGS.length];
+  document.getElementById('langBtn').textContent = LANG_NAMES[nextLang] || nextLang;
+  // Workout types chart
   Object.values(Chart.instances).forEach(c => {{
     if (c.canvas && c.canvas.id === 'cWoTypes') {{
-      c.data.labels = _lang === 'zh'
-        ? WO_EN_LABELS.map(l => WO_TYPE_ZH[l] || l)
-        : [...WO_EN_LABELS];
+      const map = WO_TYPES[_lang] || {{}};
+      c.data.labels = _lang === 'en'
+        ? [...WO_EN_LABELS]
+        : WO_EN_LABELS.map(l => map[l] || l);
       c.update('none');
     }}
   }});
@@ -456,15 +365,14 @@ function toggleTheme() {{
 
 // ── init ──
 (function() {{
+  // Save original (EN) innerHTML so we can restore when switching back to EN
   document.querySelectorAll('[data-i18n]').forEach(el => {{
     el.dataset.i18nOrig = el.innerHTML;
   }});
-  if (localStorage.getItem('aw-lang') === 'zh') {{
-    document.documentElement.classList.add('zh');
-  }}
   if (localStorage.getItem('aw-theme') === 'light') {{
     document.documentElement.classList.add('light');
     document.getElementById('themeBtn').textContent = '🌙';
   }}
+  document.documentElement.lang = _lang;
   _applyLang();
 }})();"""
