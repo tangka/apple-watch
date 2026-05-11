@@ -147,9 +147,11 @@ BENCHMARKS = {
 }
 
 
-# ─────────────────────────────────────────── VO₂max age/sex tables (ACSM) ──
+# ─────────────────────────────────────────── Age/sex benchmark tables ──
 
 _E,_G,_FA,_P,_VP = "#4ade80","#86efac","#facc15","#fb923c","#f87171"
+
+# VO₂max — ACSM (Ross et al. Circulation 2016)
 VO2MAX_LEVELS = {
     "male": {
         (20,29): [(51.1,None,"Excellent",_E),(45.4,51.0,"Good",_G),(41.7,45.3,"Fair",_FA),(37.1,41.6,"Poor",_P),(0,37.0,"Very Poor",_VP)],
@@ -167,13 +169,96 @@ VO2MAX_LEVELS = {
     },
 }
 
-def get_vo2_levels(age, sex):
-    tbl = VO2MAX_LEVELS.get("male" if (sex or "").lower() not in ("female","f") else "female",
-                            VO2MAX_LEVELS["male"])
-    for (lo, hi), levels in tbl.items():
-        if lo <= (age or 30) <= hi:
+# HRV SDNN — age+sex adjusted (Shaffer & Ginsberg, Front Public Health 2017;
+# Nunan et al., Ann Noninvasive Electrocardiol 2010; Apple Watch population norms)
+HRV_LEVELS = {
+    "male": {
+        (20,29): [(50,None,"Good",_E),(25,49.9,"Fair",_FA),(0,24.9,"Low",_VP)],
+        (30,39): [(45,None,"Good",_E),(22,44.9,"Fair",_FA),(0,21.9,"Low",_VP)],
+        (40,49): [(38,None,"Good",_E),(18,37.9,"Fair",_FA),(0,17.9,"Low",_VP)],
+        (50,59): [(32,None,"Good",_E),(15,31.9,"Fair",_FA),(0,14.9,"Low",_VP)],
+        (60,99): [(26,None,"Good",_E),(12,25.9,"Fair",_FA),(0,11.9,"Low",_VP)],
+    },
+    "female": {
+        (20,29): [(45,None,"Good",_E),(22,44.9,"Fair",_FA),(0,21.9,"Low",_VP)],
+        (30,39): [(40,None,"Good",_E),(18,39.9,"Fair",_FA),(0,17.9,"Low",_VP)],
+        (40,49): [(32,None,"Good",_E),(15,31.9,"Fair",_FA),(0,14.9,"Low",_VP)],
+        (50,59): [(26,None,"Good",_E),(12,25.9,"Fair",_FA),(0,11.9,"Low",_VP)],
+        (60,99): [(20,None,"Good",_E),(10,19.9,"Fair",_FA),(0, 9.9,"Low",_VP)],
+    },
+}
+
+# Deep sleep N3 — age adjusted (Hirshkowitz et al. Sleep Health 2015; AASM)
+# N3 declines from ~20% of sleep in young adults to ~5–10% by age 60+
+SLEEP_DEEP_LEVELS = {
+    (20,39): [(1.0,None,"Good",_E),(0.5,0.99,"Fair",_FA),(0,0.49,"Low",_VP)],
+    (40,59): [(0.7,None,"Good",_E),(0.3,0.69,"Fair",_FA),(0,0.29,"Low",_VP)],
+    (60,99): [(0.4,None,"Good",_E),(0.2,0.39,"Fair",_FA),(0,0.19,"Low",_VP)],
+}
+
+# Walking HR — mild age adjustment (max HR declines ~0.7 bpm/yr; Tanaka et al. JACC 2001)
+WALK_HR_LEVELS = {
+    (20,39): [(0,90.9,"Fit",_E),(91,110.9,"Average",_FA),(111,None,"High",_VP)],
+    (40,49): [(0,93.9,"Fit",_E),(94,112.9,"Average",_FA),(113,None,"High",_VP)],
+    (50,59): [(0,97.9,"Fit",_E),(98,116.9,"Average",_FA),(117,None,"High",_VP)],
+    (60,99): [(0,102.9,"Fit",_E),(103,120.9,"Average",_FA),(121,None,"High",_VP)],
+}
+
+# Steps — adjusted for 60+ (Paluch 2022 age-stratified analysis)
+STEPS_LEVELS_60PLUS = [
+    (8000,None,"Highly Active","#4ade80"),(6000,7999,"Active","#86efac"),
+    (4000,5999,"Somewhat Active","#facc15"),(2000,3999,"Low Active","#fb923c"),
+    (0,1999,"Sedentary","#f87171"),
+]
+
+def _age_tbl(table, age, sex=None):
+    """Lookup levels from an age-keyed table, with optional sex dimension."""
+    a = age or 30
+    if sex is not None:
+        sex_key = "female" if (sex or "").lower() in ("female","f") else "male"
+        table = table.get(sex_key, next(iter(table.values())))
+    for (lo, hi), levels in table.items():
+        if lo <= a <= hi:
             return levels
-    return VO2MAX_LEVELS["male"][(20,29)]
+    return next(iter(table.values()))
+
+def apply_profile_benchmarks(age, sex):
+    """Update all age/sex-sensitive BENCHMARKS entries in-place."""
+    a = age or 30
+    sex_display = sex.title() if sex else "Adult"
+
+    BENCHMARKS["vo2_max"]["levels"] = _age_tbl(VO2MAX_LEVELS, a, sex)
+    BENCHMARKS["vo2_max"]["note"] = (
+        f"ACSM norms for {sex_display}, age {a}. "
+        "Low CRF is a strong independent CV risk factor (AHA). "
+        "Apple Watch estimates via outdoor walk/run (±3–5 mL/kg/min vs lab)."
+    )
+
+    BENCHMARKS["hrv_sdnn_ms"]["levels"] = _age_tbl(HRV_LEVELS, a, sex)
+    BENCHMARKS["hrv_sdnn_ms"]["note"] = (
+        f"Age-adjusted norms for {sex_display}, age {a} "
+        "(Shaffer & Ginsberg 2017; Nunan 2010). "
+        "HRV declines ~1–2% per year with age. Trend over months matters more than any single value."
+    )
+
+    BENCHMARKS["sleep_deep_h"]["levels"] = _age_tbl(SLEEP_DEEP_LEVELS, a)
+    BENCHMARKS["sleep_deep_h"]["note"] = (
+        f"N3 (slow-wave) naturally declines with age; target adjusted for age {a}. "
+        "Critical for physical restoration, immune function, and memory consolidation (AASM)."
+    )
+
+    BENCHMARKS["walking_hr_bpm"]["levels"] = _age_tbl(WALK_HR_LEVELS, a)
+    BENCHMARKS["walking_hr_bpm"]["note"] = (
+        f"Lower walking HR reflects better aerobic fitness (age {a}). "
+        "Max HR ≈ 208 − 0.7×age (Tanaka 2001); thresholds adjusted accordingly."
+    )
+
+    if a >= 60:
+        BENCHMARKS["steps"]["levels"] = STEPS_LEVELS_60PLUS
+        BENCHMARKS["steps"]["note"] = (
+            "≥6,000 steps/day associated with 50–70% lower all-cause mortality in adults 60+ "
+            "(Paluch 2022 age-stratified analysis). AHA target: ≥8,000."
+        )
 
 
 # ─────────────────────────────────────────── Health score engine ──
@@ -387,14 +472,9 @@ def build_html(d):
         except Exception:
             pass
 
-    # Adjust VO₂max benchmark levels for this person's age & sex
+    # Adjust all age/sex-sensitive benchmarks
     if age is not None:
-        BENCHMARKS["vo2_max"]["levels"] = get_vo2_levels(age, sex)
-        BENCHMARKS["vo2_max"]["note"] = (
-            f"ACSM norms for {sex.title() if sex else 'adult'}, age {age}. "
-            "Low cardiorespiratory fitness is a strong independent CV risk factor (AHA). "
-            "Apple Watch estimates via outdoor walk/run — may differ ±3–5 mL/kg/min from lab."
-        )
+        apply_profile_benchmarks(age, sex)
 
     avgs = {k: recent_avg(daily, k, 90) for k in [
         "steps","resting_hr_bpm","walking_hr_bpm","hrv_sdnn_ms","vo2_max",
