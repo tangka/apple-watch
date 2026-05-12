@@ -1,8 +1,8 @@
 # Apple Health Report
 
-> **Claude Code skill** — install once, then `/apple-health ~/Downloads/export.zip` from anywhere.
+> **Codex / Claude Code skill** — install once, then ask the agent to analyze an Apple Health export from anywhere.
 
-Self-contained, evidence-based HTML reports from Apple Watch / iPhone Health exports, powered by a Claude Code skill that orchestrates the full pipeline.
+Self-contained, evidence-based HTML reports from Apple Watch / iPhone Health exports, powered by an agent skill that orchestrates the full pipeline.
 
 | | |
 |---|---|
@@ -44,7 +44,26 @@ open ./latest_parsed/health_report.html
 
 Parser takes ~1 minute per GB of XML. The report generator runs in <1 s.
 
-### 3. (Optional) Install as a Claude Code skill
+### 3. (Optional) Install as a Codex skill
+
+Clone the repo to your Codex user-level skills directory:
+
+```bash
+git clone <repo> ~/.codex/skills/apple-health
+```
+
+Then restart Codex. Codex skills are triggered from natural-language prompts; they do **not** create custom slash commands.
+
+Examples:
+
+```
+use apple-health to analyze ~/Downloads/<your-export>.zip
+用 apple-health 分析 ~/Downloads/导出.zip
+use apple-health --report
+use apple-health q: my best sleep month?
+```
+
+### 4. (Optional) Install as a Claude Code skill
 
 Clone the repo to your user-level skills directory, then link the slash command:
 

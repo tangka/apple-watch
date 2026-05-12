@@ -13,7 +13,7 @@ This skill runs a 3-stage pipeline against an Apple Health export ZIP:
 
 Apple names the export differently depending on the iPhone's locale (e.g. `export.zip` in English, `导出.zip` in Chinese, etc.). The user supplies the ZIP path; the parser doesn't care about the name. After extraction, `find_xml_in_dir()` picks up whichever `.xml` file the archive contains (skipping the small `export_cda.xml` CDA wrapper).
 
-All Python scripts live next to this SKILL.md. They use `__file__` to resolve relative paths, so the directory is fully relocatable (e.g. clone into `~/.claude/skills/apple-health/` to install as a user-level skill).
+All Python scripts live next to this SKILL.md. They use `__file__` to resolve relative paths, so the directory is fully relocatable (e.g. clone into `~/.codex/skills/apple-health/` to install as a Codex user-level skill, or `~/.claude/skills/apple-health/` for Claude Code).
 
 ---
 
@@ -22,11 +22,12 @@ All Python scripts live next to this SKILL.md. They use `__file__` to resolve re
 ```bash
 SCRIPT_DIR="$(dirname "$(realpath "$0" 2>/dev/null || readlink -f "$0" 2>/dev/null || echo "$BASH_SOURCE")")"
 # Fallback: SKILL.md sits alongside the scripts. If the runtime cannot infer
-# its path, the user-level install path is the safest default:
-[ -z "$SCRIPT_DIR" ] && SCRIPT_DIR="$HOME/.claude/skills/apple-health"
+# its path, prefer the Codex user-level install path, then Claude Code.
+[ -z "$SCRIPT_DIR" ] && SCRIPT_DIR="$HOME/.codex/skills/apple-health"
+[ ! -f "$SCRIPT_DIR/SKILL.md" ] && SCRIPT_DIR="$HOME/.claude/skills/apple-health"
 ```
 
-When the user invokes this skill explicitly (`/apple-health <path>`), `$ARGUMENTS` holds the input.
+Codex skills do not register custom slash commands. In Codex, users should invoke this skill with natural language such as `use apple-health to analyze ~/Downloads/export.zip` or `用 apple-health 分析 ~/Downloads/导出.zip`. Claude Code users may optionally install the separate `.claude/commands/apple-health.md` slash command.
 
 Default output locations (created if missing):
 - Extracted raw data → `$SCRIPT_DIR/latest_raw/`
