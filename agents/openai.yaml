@@ -1,0 +1,7 @@
+interface:
+  display_name: "Apple Health"
+  short_description: "Analyze Apple Health exports locally"
+  default_prompt: "/apple-health ~/Downloads/export.zip"
+
+policy:
+  allow_implicit_invocation: true
