@@ -13,7 +13,7 @@ This skill runs a 3-stage pipeline against an Apple Health export ZIP:
 
 Apple names the export differently depending on the iPhone's locale (e.g. `export.zip` in English, `导出.zip` in Chinese, etc.). The user supplies the ZIP path; the parser doesn't care about the name. After extraction, `find_xml_in_dir()` picks up whichever `.xml` file the archive contains (skipping the small `export_cda.xml` CDA wrapper).
 
-All Python scripts live next to this SKILL.md. They use `__file__` to resolve relative paths, so the directory is fully relocatable (e.g. clone into `~/.codex/skills/apple-health/` to install as a Codex user-level skill, or `~/.claude/skills/apple-health/` for Claude Code).
+All Python scripts live next to this SKILL.md. They use `__file__` to resolve relative paths, so the directory is fully relocatable (e.g. clone into `~/.agents/skills/apple-health/` to install as an Agents user-level skill, or `~/.claude/skills/apple-health/` for Claude Code).
 
 ---
 
@@ -22,8 +22,8 @@ All Python scripts live next to this SKILL.md. They use `__file__` to resolve re
 ```bash
 SCRIPT_DIR="$(dirname "$(realpath "$0" 2>/dev/null || readlink -f "$0" 2>/dev/null || echo "$BASH_SOURCE")")"
 # Fallback: SKILL.md sits alongside the scripts. If the runtime cannot infer
-# its path, prefer the Codex user-level install path, then Claude Code.
-[ -z "$SCRIPT_DIR" ] && SCRIPT_DIR="$HOME/.codex/skills/apple-health"
+# its path, prefer the Agents user-level install path, then Claude Code.
+[ -z "$SCRIPT_DIR" ] && SCRIPT_DIR="$HOME/.agents/skills/apple-health"
 [ ! -f "$SCRIPT_DIR/SKILL.md" ] && SCRIPT_DIR="$HOME/.claude/skills/apple-health"
 ```
 

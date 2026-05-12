@@ -44,15 +44,15 @@ open ./latest_parsed/health_report.html
 
 Parser takes ~1 minute per GB of XML. The report generator runs in <1 s.
 
-### 3. (Optional) Install as a Codex skill
+### 3. (Optional) Install as an Agents skill
 
-Clone the repo to your Codex user-level skills directory:
+Clone the repo to your Agents user-level skills directory:
 
 ```bash
-git clone <repo> ~/.codex/skills/apple-health
+git clone <repo> ~/.agents/skills/apple-health
 ```
 
-Then restart Codex. Codex skills are triggered from natural-language prompts; they do **not** create custom slash commands.
+Then restart the agent app. Skills are triggered from natural-language prompts; they do **not** create custom slash commands.
 
 Examples:
 
