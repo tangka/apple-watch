@@ -1,3 +1,5 @@
+**English** | [中文](README.zh.md)
+
 # Apple Health Report
 
 > **Codex / Claude Code skill** — install once, then ask the agent to analyze an Apple Health export from anywhere.
@@ -159,3 +161,19 @@ This report visualizes data from a consumer-grade wearable. It cannot diagnose, 
 ## License
 
 [MIT](LICENSE)
+
+
+---
+
+## 📣 About & Support
+
+These tools come from my two WeChat public accounts — welcome to follow:
+
+- **Codexx** — Codex 铁粉中文社区
+- **ClaudeDevs** — Claude 中文社区
+
+<img src="promo/codexx-qrcode.jpg" width="160" alt="Codexx"> &nbsp;&nbsp; <img src="promo/claudedevs-qrcode.jpg" width="160" alt="ClaudeDevs">
+
+If these tools help you, feel free to buy me a coffee ☕
+
+<img src="promo/wx_qr.png" width="200" alt="WeChat Pay"> &nbsp;&nbsp; <img src="promo/ali_qr.png" width="200" alt="Alipay">
